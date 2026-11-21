@@ -172,6 +172,35 @@ const MacModifier kMacModifiers[] = {
 };
 
 constexpr CGKeyCode kMacRightCommand = 0x36;                    // kVK_RightCommand
+constexpr CGKeyCode kMacEscape = 0x35;                          // kVK_Escape
+
+// Launchpad is a full-screen Dock window "LPSpringboard" on layer 27 (seen on macOS 15). Other apps'
+// window names need Screen Recording permission, the layer does not, so either one counts.
+bool launchpadVisible()
+{
+    CFArrayRef list = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+    if (list == nullptr) {
+        return false;
+    }
+    bool visible = false;
+    for (CFIndex i = 0; i < CFArrayGetCount(list) && !visible; ++i) {
+        const auto window = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(list, i));
+        const auto owner = static_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowOwnerName));
+        if (owner == nullptr || CFStringCompare(owner, CFSTR("Dock"), 0) != kCFCompareEqualTo) {
+            continue;
+        }
+        const auto name = static_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowName));
+        const auto layerNumber = static_cast<CFNumberRef>(CFDictionaryGetValue(window, kCGWindowLayer));
+        int layer = 0;
+        if (layerNumber != nullptr) {
+            CFNumberGetValue(layerNumber, kCFNumberIntType, &layer);
+        }
+        visible = layer == 27 ||
+                  (name != nullptr && CFStringCompare(name, CFSTR("LPSpringboard"), 0) == kCFCompareEqualTo);
+    }
+    CFRelease(list);
+    return visible;
+}
 constexpr std::uint64_t kMacRightCommandDevice = 0x00000010;    // NX_DEVICERCMDKEYMASK
 
 bool cursorPos(CGPoint* pos)
@@ -244,6 +273,13 @@ public:
 
     bool systemAction(const QString& gesture) override
     {
+        if (gesture == QLatin1String("pinchout") && launchpadVisible()) {
+            // as on a Mac: spreading while Launchpad is open closes it
+            const std::uint64_t flags = CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState) & kCGEventFlagMaskAlphaShift;
+            postKeyEvent(kMacEscape, true, false, false, flags);
+            postKeyEvent(kMacEscape, false, false, false, flags);
+            return true;
+        }
         // the user's own bindings (System Settings > Keyboard > Shortcuts); QSettings reads them
         // through CFPreferences, so recent changes are seen
         QSettings prefs(QStringLiteral("apple.com"), QStringLiteral("symbolichotkeys"));
