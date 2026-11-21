@@ -382,20 +382,6 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0" colspan="2">
-       <widget class="QCheckBox" name="m_pCheckBoxEnableCrypto">
-        <property name="text">
-         <string>Enable &amp;SSL</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0" colspan="2">
-       <widget class="QCheckBox" name="checkbox_require_client_certificate">
-        <property name="text">
-         <string>Require client certificate</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
@@ -537,7 +523,6 @@
   <tabstop>m_pCheckBoxAutoStart</tabstop>
   <tabstop>m_pSpinBoxPort</tabstop>
   <tabstop>m_pLineEditInterface</tabstop>
-  <tabstop>m_pCheckBoxEnableCrypto</tabstop>
   <tabstop>m_pComboLogLevel</tabstop>
   <tabstop>m_pCheckBoxLogToFile</tabstop>
   <tabstop>m_pLineEditLogFilename</tabstop>

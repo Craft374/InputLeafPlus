@@ -213,7 +213,6 @@ private:
     std::string m_dragFileExt;
     Thread* m_sendFileThread;
     Thread* m_writeToDropDirThread;
-    bool m_useSecureNetwork;
     ClientArgs m_args;
     bool m_enableClipboard;
     size_t m_maximumClipboardSize;

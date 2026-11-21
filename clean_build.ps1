@@ -124,20 +124,6 @@ if ($null -eq $qt_root) {
 
 Write-Output "Using Qt at $qt_root";
 
-$openssl_root = Join-Path $PSScriptRoot 'deps\Qt\Win_x64'
-$openssl_crypto_dll = Join-Path $openssl_root 'bin\libcrypto-3-x64.dll'
-$openssl_ssl_dll = Join-Path $openssl_root 'bin\libssl-3-x64.dll'
-if (-not (Test-Path -LiteralPath $openssl_crypto_dll) -or -not (Test-Path -LiteralPath $openssl_ssl_dll)) {
-    if (-not (Confirm-DependencyInstall 'OpenSSL 3 x64')) {
-        throw 'OpenSSL 3 x64 is required.'
-    }
-    Install-AqtPackage @('install-tool', 'windows', 'desktop', 'tools_opensslv3_x64', '-O', '.\deps\Qt')
-}
-if (-not (Test-Path -LiteralPath $openssl_crypto_dll) -or -not (Test-Path -LiteralPath $openssl_ssl_dll)) {
-    throw 'OpenSSL installation finished without the required x64 DLLs.'
-}
-Write-Output "Using OpenSSL at $openssl_root"
-
 $bonjour_path = Join-Path $PSScriptRoot 'deps\BonjourSDKLike'
 $bonjour_library = Join-Path $bonjour_path 'Lib\x64\dnssd.lib'
 if (-not (Test-Path -LiteralPath $bonjour_library)) {
@@ -175,7 +161,6 @@ try {
     & $cmake_path .. -G "$($visual_studio.version)" -A x64 `
         "-DCMAKE_BUILD_TYPE=$build_type" `
         "-DCMAKE_PREFIX_PATH=$qt_root" `
-        "-DOPENSSL_ROOT_DIR=$openssl_root" `
         "-DQT_DEFAULT_MAJOR_VERSION=$qt_major_version" `
         -DDNSSD_LIB="$bonjour_path\Lib\x64\dnssd.lib" `
         -DCMAKE_INSTALL_PREFIX=input-leap-install
@@ -183,8 +168,6 @@ try {
 
     & $cmake_path --build . --parallel --config $build_type --target install
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-
-    Copy-Item -LiteralPath $openssl_crypto_dll, $openssl_ssl_dll -Destination .\input-leap-install -Force
 
     $isccCommand = Get-Command ISCC -ErrorAction SilentlyContinue
     $isccPath = if ($null -ne $isccCommand) { $isccCommand.Source } else { $null }

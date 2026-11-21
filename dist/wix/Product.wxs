@@ -40,7 +40,6 @@
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="$(var.ProgramFilesFolder)">
 				<Directory Id="INSTALLFOLDER" Name="$(var.Name)">
-					<Directory Id="OpenSSLDir" Name="OpenSSL"/>
 					<Directory Id="PlatformsDir" Name="Platforms"/>
 				</Directory>
 			</Directory>
@@ -60,10 +59,6 @@
 					<fire:FirewallException Id="ServerFirewallException" IgnoreFailure="yes" Name="$(var.Name)" Scope="any"/>
 				</File>
                 <File Source="$(var.BinPath)/input-leapc.exe"/>
-				<File Source="$(var.OpenSSLBinPath)/libeay32.dll"/>
-				<File Source="$(var.OpenSSLBinPath)/ssleay32.dll"/>
-				<File Source="$(var.OpenSSLBinPath)/openssl.exe"/>
-                <File Source="$(var.ResPath)/openssl/input-leap.conf"/>
 			</Component>
 			<Component Guid="BAC8149B-6287-45BF-9C27-43D71ED40214" Id="Gui">
                 <File Id="GuiProgram" KeyPath="yes" Source="$(var.BinPath)/input-leap.exe">

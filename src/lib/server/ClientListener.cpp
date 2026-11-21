@@ -36,8 +36,7 @@ ClientListener::ClientListener(const NetworkAddress& address,
                                ConnectionSecurityLevel security_level) :
     socket_factory_{std::move(socket_factory)},
     m_server(nullptr),
-    m_events(events),
-    security_level_{security_level}
+    m_events(events)
 {
     try {
         listen_ = socket_factory_->create_listen(ARCH->getAddrFamily(address.getAddress()),
@@ -125,11 +124,7 @@ void ClientListener::handle_client_connecting()
         handle_client_accepted(socket_ptr);
     });
 
-    // When using non SSL, server accepts clients immediately, while SSL
-    // has to call secure accept which may require retry
-    if (security_level_ == ConnectionSecurityLevel::PLAINTEXT) {
-        m_events->add_event(EventType::CLIENT_LISTENER_ACCEPTED, socket_ptr->get_event_target());
-    }
+    m_events->add_event(EventType::CLIENT_LISTENER_ACCEPTED, socket_ptr->get_event_target());
 }
 
 void ClientListener::handle_client_accepted(IDataSocket* socket_ptr)

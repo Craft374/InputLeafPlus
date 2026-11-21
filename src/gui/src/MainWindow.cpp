@@ -27,14 +27,9 @@
 #include "ServerConfigDialog.h"
 #include "SettingsDialog.h"
 #include "ZeroconfService.h"
-#include "FingerprintAcceptDialog.h"
 #include "PhoneServer.h"
 #include "QUtility.h"
-#include "SslCertificate.h"
-#include "base/String.h"
 #include "common/DataDirectories.h"
-#include "net/FingerprintDatabase.h"
-#include "net/SecureUtils.h"
 
 #include <QtCore>
 #include <QtGui>
@@ -384,7 +379,6 @@ MainWindow::MainWindow(QSettings& settings, AppConfig& appConfig) :
     m_SuppressAutoConfigWarning(false),
     m_SuppressEmptyServerWarning(false),
     m_ExpectedRunningState(kStopped),
-    m_pSslCertificate(nullptr),
     m_pLogWindow(new LogWindow(nullptr))
 {
     // explicitly unset DeleteOnClose so the window can be show and hidden
@@ -440,26 +434,6 @@ MainWindow::MainWindow(QSettings& settings, AppConfig& appConfig) :
     m_SuppressAutoConfigWarning = false;
 
     ui_->m_pComboServerList->hide();
-    ui_->m_pLabelPadlock->hide();
-    ui_->m_pLabelPadlock->setPixmap(QPixmap(":/res/icons/64x64/padlock.png").scaledToHeight(fontMetrics().height() * 1.5, Qt::SmoothTransformation));
-    ui_->frame_fingerprint_details->hide();
-
-    updateSSLFingerprint();
-
-    connect(ui_->toolbutton_show_fingerprint, &QToolButton::clicked, this, [this](bool checked)
-    {
-        (void) checked;
-
-        m_fingerprint_expanded = !m_fingerprint_expanded;
-        if (m_fingerprint_expanded) {
-            ui_->frame_fingerprint_details->show();
-            ui_->toolbutton_show_fingerprint->setArrowType(Qt::ArrowType::UpArrow);
-        } else {
-            ui_->frame_fingerprint_details->hide();
-            ui_->toolbutton_show_fingerprint->setArrowType(Qt::ArrowType::DownArrow);
-        }
-    });
-
     // resize window to smallest reasonable size
     resize(0, 0);
 }
@@ -477,7 +451,6 @@ MainWindow::~MainWindow()
     saveSettings();
 
     delete m_pZeroconfService;
-    delete m_pSslCertificate;
 
     // LogWindow is created as a sibling of the MainWindow rather than a child
     // so that the main window can be hidden without hiding the log. because of
@@ -777,7 +750,6 @@ void MainWindow::updateFromLogLine(const QString &line)
 {
     // TODO: this code makes Andrew cry
     checkConnected(line);
-    checkFingerprint(line);
 }
 
 void MainWindow::checkConnected(const QString& line)
@@ -809,96 +781,6 @@ void MainWindow::checkConnected(const QString& line)
             appConfig().setStartedBefore(true);
             appConfig().saveSettings();
         }
-    }
-}
-
-// Adds a SHA256 fingerprint to the trusted servers (client side) or trusted clients (server side) database.
-static void trustFingerprint(bool trustedServersDb, const inputleap::FingerprintData& fingerprint_sha256)
-{
-    auto db_path = trustedServersDb
-            ? inputleap::DataDirectories::trusted_servers_ssl_fingerprints_path()
-            : inputleap::DataDirectories::trusted_clients_ssl_fingerprints_path();
-
-    auto db_dir = db_path.parent_path();
-    if (!inputleap::fs::exists(db_dir)) {
-        inputleap::fs::create_directories(db_dir);
-    }
-
-    inputleap::FingerprintDatabase db;
-    db.read(db_path);
-    db.add_trusted(fingerprint_sha256);
-    db.write(db_path);
-}
-
-void MainWindow::checkFingerprint(const QString& line)
-{
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    QRegularExpression fingerprintRegex("peer fingerprint \\(SHA1\\): ([A-F0-9:]+) \\(SHA256\\): ([A-F0-9:]+)$");
-    QRegularExpressionMatch match = fingerprintRegex.match(line);
-    if (!match.hasMatch()) {
-        return;
-    }
-
-    auto match1 = match.captured(1).toStdString();
-    auto match2 = match.captured(2).toStdString();
-#else
-    QRegExp fingerprintRegex(".*peer fingerprint \\(SHA1\\): ([A-F0-9:]+) \\(SHA256\\): ([A-F0-9:]+)");
-    if (!fingerprintRegex.exactMatch(line)) {
-        return;
-    }
-
-    auto match1 = fingerprintRegex.cap(1).toStdString();
-    auto match2 = fingerprintRegex.cap(2).toStdString();
-#endif
-
-    inputleap::FingerprintData fingerprint_sha1 = {
-        inputleap::fingerprint_type_to_string(inputleap::FingerprintType::SHA1),
-        inputleap::string::from_hex(match1)
-    };
-
-    inputleap::FingerprintData fingerprint_sha256 = {
-        inputleap::fingerprint_type_to_string(inputleap::FingerprintType::SHA256),
-        inputleap::string::from_hex(match2)
-    };
-
-    bool is_client = app_role() == AppRole::Client;
-
-    auto db_path = is_client
-            ? inputleap::DataDirectories::trusted_servers_ssl_fingerprints_path()
-            : inputleap::DataDirectories::trusted_clients_ssl_fingerprints_path();
-
-    auto db_dir = db_path.parent_path();
-    if (!inputleap::fs::exists(db_dir)) {
-        inputleap::fs::create_directories(db_dir);
-    }
-
-    // We compare only SHA256 fingerprints, but show both SHA1 and SHA256 so that the users can
-    // still verify fingerprints on old InputLeap servers. This way the only time when we are
-    // exposed to SHA1 vulnerabilities is when the user is reconnecting again.
-    inputleap::FingerprintDatabase db;
-    db.read(db_path);
-    if (db.is_trusted(fingerprint_sha256)) {
-        return;
-    }
-
-    static bool messageBoxAlreadyShown = false;
-
-    if (!messageBoxAlreadyShown) {
-        if (is_client) {
-            stop_cmd_app();
-        }
-
-        messageBoxAlreadyShown = true;
-        FingerprintAcceptDialog dialog{this, app_role(), fingerprint_sha1, fingerprint_sha256};
-        if (dialog.exec() == QDialog::Accepted) {
-            // restart core process after trusting fingerprint.
-            trustFingerprint(is_client, fingerprint_sha256);
-            if (is_client) {
-                start_cmd_app();
-            }
-        }
-
-        messageBoxAlreadyShown = false;
     }
 }
 
@@ -980,10 +862,6 @@ void MainWindow::start_cmd_app()
     }
 
 #endif
-
-    if (!m_AppConfig->getCryptoEnabled()) {
-        args << "--disable-crypto";
-    }
 
 #if defined(Q_OS_WIN)
     // on windows, the profile directory changes depending on the user that
@@ -1187,10 +1065,6 @@ bool MainWindow::serverArgs(QStringList& args, QString& app)
         args << "--log" << appConfig().logFilenameCmd();
     }
 
-    if (!appConfig().getRequireClientCertificate()) {
-        args << "--disable-client-cert-checking";
-    }
-
 #if defined(Q_OS_MAC)
     if (appConfig().getMacMapFunctionKeys()) {
         args << "--mac-map-function-keys";
@@ -1314,24 +1188,13 @@ void MainWindow::set_connection_state(AppConnectionState state)
 
     switch (state)
     {
-    case AppConnectionState::CONNECTED: {
-        if (m_AppConfig->getCryptoEnabled()) {
-            ui_->m_pLabelPadlock->show();
-        }
-        else {
-            ui_->m_pLabelPadlock->hide();
-        }
-
+    case AppConnectionState::CONNECTED:
         setStatus(tr("InputLeafPlus is running."));
-
         break;
-    }
     case AppConnectionState::CONNECTING:
-        ui_->m_pLabelPadlock->hide();
         setStatus(tr("InputLeafPlus is starting."));
         break;
     case AppConnectionState::DISCONNECTED:
-        ui_->m_pLabelPadlock->hide();
         setStatus(tr("InputLeafPlus is not running."));
         break;
     case AppConnectionState::TRANSFERRING:
@@ -1478,56 +1341,6 @@ void MainWindow::serverDetected(const QString name)
     }
 }
 
-void MainWindow::updateSSLFingerprint()
-{
-    if (m_AppConfig->getCryptoEnabled() && m_pSslCertificate == nullptr) {
-        m_pSslCertificate = new SslCertificate(this);
-        connect(m_pSslCertificate, &SslCertificate::info, this, &MainWindow::appendLogInfo);
-        m_pSslCertificate->generateCertificate();
-    }
-
-    ui_->toolbutton_show_fingerprint->setEnabled(false);
-    ui_->m_pLabelLocalFingerprint->setText("Disabled");
-
-    if (!m_AppConfig->getCryptoEnabled()) {
-        return;
-    }
-
-    auto local_path = inputleap::DataDirectories::local_ssl_fingerprints_path();
-    if (!inputleap::fs::exists(local_path)) {
-        return;
-    }
-
-    inputleap::FingerprintDatabase db;
-    db.read(local_path);
-    if (db.fingerprints().size() != 2) {
-        return;
-    }
-
-    for (const auto& fingerprint : db.fingerprints()) {
-        if (fingerprint.algorithm == "sha1") {
-            auto fingerprint_str = inputleap::format_ssl_fingerprint(fingerprint.data);
-            ui_->label_sha1_fingerprint_full->setText(QString::fromStdString(fingerprint_str));
-            continue;
-        }
-
-        if (fingerprint.algorithm == "sha256") {
-            auto fingerprint_str = inputleap::format_ssl_fingerprint(fingerprint.data);
-            fingerprint_str.resize(40);
-            fingerprint_str += " ...";
-
-            auto fingerprint_str_cols = inputleap::format_ssl_fingerprint_columns(fingerprint.data);
-            auto fingerprint_randomart = inputleap::create_fingerprint_randomart(fingerprint.data);
-
-            ui_->m_pLabelLocalFingerprint->setText(QString::fromStdString(fingerprint_str));
-            ui_->label_sha256_fingerprint_full->setText(QString::fromStdString(fingerprint_str_cols));
-            ui_->label_sha256_randomart->setText(QString::fromStdString(fingerprint_randomart));
-        }
-    }
-
-    ui_->toolbutton_show_fingerprint->setEnabled(true);
-}
-
 void MainWindow::on_m_pGroupClient_toggled(bool on)
 {
     ui_->m_pGroupServer->setChecked(!on);
@@ -1584,7 +1397,6 @@ void MainWindow::on_m_pActionSettings_triggered()
     auto dialog = std::make_unique<SettingsDialog>(this, appConfig());
     connect(dialog.get(), &SettingsDialog::requestLanguageChange, this, &MainWindow::requestLanguageChange);
     if (dialog.get()->exec() == QDialog::Accepted) {
-        updateSSLFingerprint();
         updatePhoneServer();
         updatePeerLink();
 #if defined(Q_OS_MAC)
@@ -1642,21 +1454,6 @@ QString MainWindow::swapBlocker() const
     }
     if (app_role() == AppRole::Server && ui_->m_pRadioExternalConfig->isChecked()) {
         return tr("역할 교환은 '내부 설정'을 쓸 때만 가능합니다.");
-    }
-    return QString();
-}
-
-QString MainWindow::localSha256() const
-{
-    if (!m_AppConfig->getCryptoEnabled()) {
-        return QString();
-    }
-    inputleap::FingerprintDatabase db;
-    db.read(inputleap::DataDirectories::local_ssl_fingerprints_path());
-    for (const auto& fingerprint : db.fingerprints()) {
-        if (fingerprint.algorithm == "sha256") {
-            return QString::fromStdString(inputleap::format_ssl_fingerprint(fingerprint.data));
-        }
     }
     return QString();
 }
@@ -1723,7 +1520,6 @@ void MainWindow::beginSwap()
     peerlink::SwapRequest request;
     request.fromName = getScreenName();
     request.fromRole = iAmServer ? QStringLiteral("server") : QStringLiteral("client");
-    request.fromFingerprint = localSha256();
     request.port = appConfig().port();
     if (iAmServer) {
         request.layout = serverConfig().toVariantMap();
@@ -1768,7 +1564,7 @@ void MainWindow::requestSwapTo(const QStringList& hosts, int index, const peerli
             const QString address = reply.address.isEmpty() ? host : reply.address;
             appConfig().setPeerAddress(address);
             appConfig().saveSettings();
-            applyRole(iAmServer ? AppRole::Client : AppRole::Server, address, reply.fingerprint, reply.port);
+            applyRole(iAmServer ? AppRole::Client : AppRole::Server, address, reply.port);
         });
 }
 
@@ -1803,7 +1599,6 @@ peerlink::SwapReply MainWindow::handleSwapRequest(const peerlink::SwapRequest& r
     }
 
     reply.name = getScreenName();
-    reply.fingerprint = localSha256();
     reply.port = appConfig().port();
     if (iAmServer) {
         if (!serverConfig().hasScreen(request.fromName)) {
@@ -1828,13 +1623,13 @@ peerlink::SwapReply MainWindow::handleSwapRequest(const peerlink::SwapRequest& r
     m_SwapInProgress = true;
     const AppRole newRole = iAmServer ? AppRole::Client : AppRole::Server;
     QTimer::singleShot(300, this, [this, newRole, request]() {
-        applyRole(newRole, request.fromAddress, request.fromFingerprint, request.port);
+        applyRole(newRole, request.fromAddress, request.port);
     });
     reply.ok = true;
     return reply;
 }
 
-void MainWindow::applyRole(AppRole newRole, const QString& peerHost, const QString& peerFingerprint, int peerPort)
+void MainWindow::applyRole(AppRole newRole, const QString& peerHost, int peerPort)
 {
     m_SwapInProgress = true;
     const bool toServer = newRole == AppRole::Server;
@@ -1844,14 +1639,6 @@ void MainWindow::applyRole(AppRole newRole, const QString& peerHost, const QStri
     if (!toServer && peerPort > 0 && peerPort != appConfig().port()) {
         appendLogInfo(tr("포트를 상대 PC에 맞춰 %1(으)로 바꿉니다").arg(peerPort));
         appConfig().setPort(peerPort);
-    }
-
-    // pre-trust the peer so the fingerprint dialog does not show up (the peer is authenticated by the pairing code)
-    if (!peerFingerprint.isEmpty() && appConfig().getCryptoEnabled()) {
-        auto data = inputleap::string::from_hex(peerFingerprint.toStdString());
-        if (data.size() == 32) {
-            trustFingerprint(!toServer, {inputleap::fingerprint_type_to_string(inputleap::FingerprintType::SHA256), data});
-        }
     }
 
     if (toServer) {

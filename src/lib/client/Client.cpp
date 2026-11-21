@@ -32,7 +32,6 @@
 #include "net/TCPSocket.h"
 #include "net/IDataSocket.h"
 #include "net/ISocketFactory.h"
-#include "net/SecureSocket.h"
 #include "arch/Arch.h"
 #include "base/Log.h"
 #include "base/EventQueueTimer.h"
@@ -68,7 +67,6 @@ Client::Client(IEventQueue* events, const std::string& name, const NetworkAddres
     m_events(events),
     m_sendFileThread(nullptr),
     m_writeToDropDirThread(nullptr),
-    m_useSecureNetwork(args.m_enableCrypto),
     m_args(args),
     m_enableClipboard(true),
     m_maximumClipboardSize(INT_MAX)
@@ -118,10 +116,6 @@ Client::connect()
     }
 
     auto security_level = ConnectionSecurityLevel::PLAINTEXT;
-    if (m_useSecureNetwork) {
-        // client always authenticates server
-        security_level = ConnectionSecurityLevel::ENCRYPTED_AUTHENTICATED;
-    }
 
     try {
         // resolve the server hostname.  do this every time we connect
@@ -442,14 +436,8 @@ Client::setupConnecting()
 {
     assert(m_stream != nullptr);
 
-    if (m_args.m_enableCrypto) {
-        m_events->add_handler(EventType::DATA_SOCKET_SECURE_CONNECTED, m_stream->get_event_target(),
-                              [this](const auto& e){ handle_connected(); });
-    }
-    else {
-        m_events->add_handler(EventType::DATA_SOCKET_CONNECTED, m_stream->get_event_target(),
-                              [this](const auto& e){ handle_connected(); });
-    }
+    m_events->add_handler(EventType::DATA_SOCKET_CONNECTED, m_stream->get_event_target(),
+                          [this](const auto& e){ handle_connected(); });
     m_events->add_handler(EventType::DATA_SOCKET_CONNECTION_FAILED, m_stream->get_event_target(),
                           [this](const auto& e){ handle_connection_failed(e); });
 }

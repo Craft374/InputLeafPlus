@@ -54,7 +54,6 @@ parts:
       - xorg-dev
       - libcurl4-openssl-dev
       - libavahi-compat-libdnssd-dev
-      - libssl-dev
       - libx11-dev
       - qtbase5-dev
       - qt5-style-plugins

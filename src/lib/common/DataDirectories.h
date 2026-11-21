@@ -33,12 +33,6 @@ public:
     static const fs::path& systemconfig();
     static const fs::path& systemconfig(const fs::path& path);
 
-    static fs::path ssl_fingerprints_path();
-    static fs::path local_ssl_fingerprints_path();
-    static fs::path trusted_servers_ssl_fingerprints_path();
-    static fs::path trusted_clients_ssl_fingerprints_path();
-    static fs::path ssl_certificate_path();
-
     static void maybe_copy_old_profile(const fs::path& old_profile_path,
                                        const fs::path& curr_profile_path);
 private:

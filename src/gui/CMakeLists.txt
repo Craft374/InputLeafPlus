@@ -41,7 +41,6 @@ set(GUI_SOURCE_FILES
     src/AppLocale.cpp
     src/BaseConfig.cpp
     src/CommandProcess.cpp
-    src/FingerprintAcceptDialog.cpp
     src/HotkeyDialog.cpp
     src/IpcClient.cpp
     src/Ipc.cpp
@@ -64,7 +63,6 @@ set(GUI_SOURCE_FILES
     src/ServerConfigDialog.cpp
     src/SettingsDialog.cpp
     src/SetupWizard.cpp
-    src/SslCertificate.cpp
     src/TrashScreenWidget.cpp
     src/ZeroconfBrowser.cpp
     src/ZeroconfRegister.cpp
@@ -105,7 +103,6 @@ set(GUI_HEADER_FILES
     src/ServerConfig.h
     src/SettingsDialog.h
     src/SetupWizard.h
-    src/SslCertificate.h
     src/TrashScreenWidget.h
     src/ZeroconfBrowser.h
     src/ZeroconfRecord.h
@@ -119,7 +116,6 @@ set(GUI_UI_FILES
     src/AboutDialog.ui
     src/ActionDialog.ui
     src/AddClientDialog.ui
-    src/FingerprintAcceptDialog.ui
     src/HotkeyDialog.ui
     src/LogWindow.ui
     src/MainWindow.ui
@@ -214,7 +210,6 @@ include_directories (./src)
 
 target_link_libraries(input-leap
     keytypes
-    net
     arch
     base
     io
@@ -222,8 +217,6 @@ target_link_libraries(input-leap
     Qt${QT_DEFAULT_MAJOR_VERSION}::Widgets
     Qt${QT_DEFAULT_MAJOR_VERSION}::Network
 )
-
-target_link_libraries(input-leap OpenSSL::SSL OpenSSL::Crypto)
 
 target_compile_definitions (input-leap PRIVATE -DINPUTLEAP_VERSION_STAGE="${INPUTLEAP_VERSION_STAGE}")
 target_compile_definitions (input-leap PRIVATE -DINPUTLEAP_REVISION="${INPUTLEAP_REVISION}")

@@ -61,9 +61,6 @@ public:
     // methods with identical signatures from both superclasses.
     void close() override;
     const EventTarget* get_event_target() const override;
-
-    // IStream overrides
-    virtual bool isFatal() const = 0;
 };
 
 } // namespace inputleap

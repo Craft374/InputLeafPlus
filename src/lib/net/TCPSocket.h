@@ -54,7 +54,6 @@ public:
     void shutdownInput() override;
     void shutdownOutput() override;
     bool isReady() const override;
-    bool isFatal() const override;
     std::uint32_t getSize() const override;
 
     // IDataSocket overrides

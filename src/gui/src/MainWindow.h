@@ -57,7 +57,6 @@ class LogDialog;
 class QInputLeapApplication;
 class SetupWizard;
 class ZeroconfService;
-class SslCertificate;
 class PhoneServer;
 
 namespace Ui
@@ -160,21 +159,18 @@ public slots:
         void offerBonjourDownload();
         void promptAutoConfig();
         void checkConnected(const QString& line);
-        void checkFingerprint(const QString& line);
         void restart_cmd_app();
         void proofreadInfo();
         void windowStateChanged();
-        void updateSSLFingerprint();
         void updatePhoneServer();
         void updatePeerLink();
         void beginSwap();
         void requestSwapTo(const QStringList& hosts, int index, const peerlink::SwapRequest& request, bool iAmServer);
         void refreshNetwork();
         peerlink::SwapReply handleSwapRequest(const peerlink::SwapRequest& request);
-        void applyRole(AppRole newRole, const QString& peerHost, const QString& peerFingerprint, int peerPort);
+        void applyRole(AppRole newRole, const QString& peerHost, int peerPort);
         bool adoptLayout(const QVariantMap& layout, QString* why);
         QString swapBlocker() const;
-        QString localSha256() const;
 
     private:
         std::unique_ptr<Ui::MainWindow> ui_;
@@ -197,7 +193,6 @@ public slots:
         bool m_SuppressEmptyServerWarning;
         qRuningState m_ExpectedRunningState;
         QMutex m_StopDesktopMutex;
-        SslCertificate* m_pSslCertificate;
         QStringList m_PendingClientNames;
         LogWindow *m_pLogWindow;
         bool m_ShuttingDown = false;
@@ -205,8 +200,6 @@ public slots:
         PeerLink* m_pPeerLink = nullptr;         // owned through QObject parent
         bool m_SwapInProgress = false;
         QString m_PeerIpHint;   // the other PC's address as announced over Bonjour (fresh after wifi changes)
-
-        bool m_fingerprint_expanded = false;
 
 private slots:
     void on_m_pCheckBoxAutoConfig_toggled(bool checked);

@@ -31,7 +31,6 @@ public:
     std::string m_configFile;
     Config* m_config;
     std::string m_screenChangeScript;
-    bool check_client_certificates = true;
     bool map_mac_function_keys = false;
     std::string mac_local_input_device;
 };

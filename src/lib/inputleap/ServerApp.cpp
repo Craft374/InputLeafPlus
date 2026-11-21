@@ -147,8 +147,6 @@ ServerApp::help()
            << "  -a, --address <address>  listen for clients on the given address.\n"
            << "  -c, --config <pathname>  use the named configuration file instead.\n"
            << HELP_COMMON_INFO_1
-           << "      --disable-client-cert-checking disable client SSL certificate \n"
-              "                                     checking (deprecated)\n"
 #ifdef WINAPI_XWINDOWS
            << "      --use-x11            use the X11 backend\n"
            << "      --display <display>  connect to the X server at <display>\n"
@@ -650,12 +648,6 @@ ClientListener*
 ServerApp::openClientListener(const NetworkAddress& address)
 {
     auto security_level = ConnectionSecurityLevel::PLAINTEXT;
-    if (args().m_enableCrypto) {
-        security_level = ConnectionSecurityLevel::ENCRYPTED;
-        if (args().check_client_certificates) {
-            security_level = ConnectionSecurityLevel::ENCRYPTED_AUTHENTICATED;
-        }
-    }
 
     ClientListener* listen = new ClientListener(
         address,

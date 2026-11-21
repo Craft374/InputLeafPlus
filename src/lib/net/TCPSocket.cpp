@@ -248,14 +248,6 @@ TCPSocket::isReady() const
     return (m_inputBuffer.getSize() > 0);
 }
 
-bool
-TCPSocket::isFatal() const
-{
-    // TCP sockets aren't ever left in a fatal state.
-    LOG_ERR("isFatal() not valid for non-secure connections");
-    return false;
-}
-
 std::uint32_t TCPSocket::getSize() const
 {
     std::lock_guard<std::mutex> lock(tcp_mutex_);

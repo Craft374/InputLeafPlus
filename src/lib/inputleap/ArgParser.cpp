@@ -142,7 +142,7 @@ ArgParser::parseServerArgs(ServerArgs& args, int argc, const char* const* argv)
                 args.m_screenChangeScript = optarg;
             }
             else if (a.shift("--disable-client-cert-checking")) {
-                args.check_client_certificates = false;
+                // no-op: SSL was removed; still accepted for saved command lines
             }
             else if (a.shift("--mac-map-function-keys")) {
                 args.map_mac_function_keys = true;
@@ -440,11 +440,8 @@ ArgParser::parseGenericArgs(Argv& argv)
     else if (argv.shift("--drop-dir")) {
         argsBase().m_dropTarget = argv.shift();
     }
-    else if (argv.shift("--enable-crypto")) {
-        LOG_INFO("--enable-crypto is used by default. The option is deprecated.");
-    }
-    else if (argv.shift("--disable-crypto")) {
-        argsBase().m_enableCrypto = false;
+    else if (argv.shift("--enable-crypto", "--disable-crypto")) {
+        // no-op: SSL was removed; the Windows daemon may replay old saved command lines
     }
     else if (argv.shift("--profile-dir", nullptr, &optarg)) {
         argsBase().m_profileDirectory = inputleap::fs::u8path(optarg);

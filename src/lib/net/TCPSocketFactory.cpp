@@ -19,8 +19,6 @@
 #include "net/TCPSocketFactory.h"
 #include "net/TCPSocket.h"
 #include "net/TCPListenSocket.h"
-#include "net/SecureSocket.h"
-#include "net/SecureListenSocket.h"
 #include "arch/Arch.h"
 #include "base/Log.h"
 
@@ -42,26 +40,16 @@ std::unique_ptr<IDataSocket>
     TCPSocketFactory::create(IArchNetwork::EAddressFamily family,
                              ConnectionSecurityLevel security_level) const
 {
-    if (security_level != ConnectionSecurityLevel::PLAINTEXT) {
-        auto secure_socket = std::make_unique<SecureSocket>(m_events, m_socketMultiplexer, family,
-                                                            security_level);
-        secure_socket->initSsl(false);
-        return secure_socket;
-    } else {
-        return std::make_unique<TCPSocket>(m_events, m_socketMultiplexer, family);
-    }
+    (void) security_level; // TLS was removed; every connection is plaintext
+    return std::make_unique<TCPSocket>(m_events, m_socketMultiplexer, family);
 }
 
 std::unique_ptr<IListenSocket>
     TCPSocketFactory::create_listen(IArchNetwork::EAddressFamily family,
                                     ConnectionSecurityLevel security_level) const
 {
-    if (security_level != ConnectionSecurityLevel::PLAINTEXT) {
-        return std::make_unique<SecureListenSocket>(m_events, m_socketMultiplexer, family,
-                                                    security_level);
-    } else {
-        return std::make_unique<TCPListenSocket>(m_events, m_socketMultiplexer, family);
-    }
+    (void) security_level;
+    return std::make_unique<TCPListenSocket>(m_events, m_socketMultiplexer, family);
 }
 
 } // namespace inputleap

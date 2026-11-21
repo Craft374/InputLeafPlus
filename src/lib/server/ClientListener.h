@@ -86,7 +86,6 @@ private:
     WaitingClients m_waitingClients;
     Server* m_server;
     IEventQueue* m_events;
-    ConnectionSecurityLevel security_level_;
     UniquePtrContainer<IDataSocket> client_sockets_;
 };
 

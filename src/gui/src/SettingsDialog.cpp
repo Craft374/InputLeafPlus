@@ -60,8 +60,6 @@ SettingsDialog::SettingsDialog(QWidget* parent, AppConfig& config) :
     ui_->m_pCheckBoxAutoHide->setChecked(app_config_.getAutoHide());
     ui_->m_pCheckBoxAutoStart->setChecked(app_config_.getAutoStart());
     ui_->m_pCheckBoxMinimizeToTray->setChecked(app_config_.getMinimizeToTray());
-    ui_->m_pCheckBoxEnableCrypto->setChecked(app_config_.getCryptoEnabled());
-    ui_->checkbox_require_client_certificate->setChecked(app_config_.getRequireClientCertificate());
 
     ui_->m_pCheckBoxPhoneEnabled->setChecked(app_config_.phoneEnabled());
     ui_->m_pSpinBoxPhonePort->setValue(app_config_.phonePort());
@@ -159,8 +157,6 @@ void SettingsDialog::accept()
     app_config_.setScreenName(ui_->m_pLineEditScreenName->text());
     app_config_.setPort(ui_->m_pSpinBoxPort->value());
     app_config_.setNetworkInterface(ui_->m_pLineEditInterface->text());
-    app_config_.setCryptoEnabled(ui_->m_pCheckBoxEnableCrypto->isChecked());
-    app_config_.setRequireClientCertificate(ui_->checkbox_require_client_certificate->isChecked());
     app_config_.setLogLevel(ui_->m_pComboLogLevel->currentIndex());
     app_config_.setLogToFile(ui_->m_pCheckBoxLogToFile->isChecked());
     app_config_.setLogFilename(ui_->m_pLineEditLogFilename->text());

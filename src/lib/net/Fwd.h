@@ -18,12 +18,6 @@
 
 namespace inputleap {
 
-// FingerprintData.h
-struct FingerprintData;
-
-// FingerprintDatabase.h
-class FingerprintDatabase;
-
 // IDataSocket.h
 class IDataSocket;
 
@@ -42,12 +36,6 @@ class ISocketMultiplexerJob;
 
 // NetworkAddress.h
 class NetworkAddress;
-
-// SecureListenSocket.h
-class SecureListenSocket;
-
-// SecureSocket.h
-class SecureSocket;
 
 // SocketMultiplexer.h
 class SocketMultiplexer;

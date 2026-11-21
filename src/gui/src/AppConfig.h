@@ -86,12 +86,6 @@ class AppConfig: public QObject
         void persistLogDir();
         ElevateMode elevateMode();
 
-        void setCryptoEnabled(bool e);
-        bool getCryptoEnabled() const;
-
-        void setRequireClientCertificate(bool e);
-        bool getRequireClientCertificate() const;
-
         void setAutoHide(bool b);
         bool getAutoHide();
 
@@ -153,8 +147,6 @@ protected:
         bool m_AutoConfig;
         ElevateMode m_ElevateMode;
         bool m_AutoConfigPrompted;
-        bool m_CryptoEnabled;
-        bool m_RequireClientCertificate = false;
         bool m_AutoHide;
         bool m_AutoStart;
         bool m_MinimizeToTray;

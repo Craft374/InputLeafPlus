@@ -29,7 +29,7 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-required_packages=(cmake ninja qt openssl@3)
+required_packages=(cmake ninja qt)
 missing_packages=()
 for package in "${required_packages[@]}"; do
     if ! brew list --versions "$package" >/dev/null 2>&1; then
@@ -41,10 +41,8 @@ if [ "${#missing_packages[@]}" -gt 0 ]; then
 fi
 
 qt_root="$(brew --prefix qt)"
-openssl_root="$(brew --prefix openssl@3)"
 export PATH="$qt_root/bin:$PATH"
-export CMAKE_PREFIX_PATH="$qt_root:$openssl_root${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
-export OPENSSL_ROOT_DIR="$openssl_root"
+export CMAKE_PREFIX_PATH="$qt_root${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 export B_BUILD_TYPE=Release
 export B_OSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion | awk -F. '{print $1 "." $2}')"
 export B_CMAKE_FLAGS="${B_CMAKE_FLAGS:-} -DCMAKE_OSX_ARCHITECTURES=arm64"

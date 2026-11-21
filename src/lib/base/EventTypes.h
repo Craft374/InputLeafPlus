@@ -101,9 +101,6 @@ enum class EventType : std::uint32_t {
     /// A socket sends this event when a remote connection has been established.
     DATA_SOCKET_CONNECTED,
 
-    /// A secure socket sends this event when a remote connection has been established.
-    DATA_SOCKET_SECURE_CONNECTED,
-
     /** A socket sends this event when an attempt to connect to a remote port has failed.
         The data an instance of a ConnectionFailedInfo.
     */
