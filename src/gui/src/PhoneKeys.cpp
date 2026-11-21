@@ -118,6 +118,39 @@ QMap<Key, Key> localModifierKeys(const std::function<BaseConfig::Modifier(BaseCo
     return keys;
 }
 
+bool macGestureHotKey(const QString& gesture, const QVariantMap& symbolicHotKeys, MacHotKey* out)
+{
+    struct Gesture { const char* name; int id; int keyCode; quint64 flags; };
+    // macOS defaults: Control+fn+arrows, fn+F11 (real arrow/F-key presses carry fn)
+    static const Gesture kGestures[] = {
+        {"up", 32, 126, 0x840000}, {"down", 33, 125, 0x840000},
+        {"left", 81, 124, 0x840000}, {"right", 79, 123, 0x840000},   // fingers left = the space on the right
+        {"pinchout", 36, 103, 0x800000},
+    };
+    for (const Gesture& g : kGestures) {
+        if (gesture != QLatin1String(g.name)) {
+            continue;
+        }
+        out->keyCode = g.keyCode;
+        out->flags = g.flags;
+        const QVariant entry = symbolicHotKeys.value(QString::number(g.id));
+        if (entry.isValid()) {
+            const QVariantMap map = entry.toMap();
+            if (!map.value(QStringLiteral("enabled")).toBool()) {
+                return false;
+            }
+            const QVariantList params =
+                map.value(QStringLiteral("value")).toMap().value(QStringLiteral("parameters")).toList();
+            if (params.size() >= 3) {
+                out->keyCode = params.at(1).toInt();
+                out->flags = params.at(2).toULongLong();
+            }
+        }
+        return out->keyCode >= 0 && out->keyCode < 0xFFFF;   // 65535 = no key bound
+    }
+    return false;
+}
+
 QString keyName(Key key)
 {
     const int k = idx(key);

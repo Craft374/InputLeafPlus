@@ -111,7 +111,7 @@ function sv(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function rm(k){try{localStorage.removeItem(k)}catch(e){}}
 
 /* ---- settings ---- */
-var cfg={sens:1.5,scroll:1.5,tap:true,drag3:true,page:true,vib:true,wake:false};
+var cfg={sens:1.5,scroll:1.5,tap:true,d3:false,page:true,vib:true,wake:false}; // 3-finger drag is off like on a Mac; a new key so the old default-on 'drag3' does not stick
 try{var o=JSON.parse(ld('ph.cfg','{}'));for(var k in cfg){if(typeof o[k]===typeof cfg[k])cfg[k]=o[k]}}catch(e){}
 function saveCfg(){sv('ph.cfg',JSON.stringify(cfg))}
 // scroll direction follows the PC (macOS natural scrolling) until the user flips it here
@@ -293,8 +293,8 @@ function zoomEnd(){if(g.zoomCtrl){send({t:'key',k:'Ctrl',d:0});g.zoomCtrl=false}
 var GL={up:'위로 쓸기',down:'아래로 쓸기',left:'왼쪽으로 쓸기',right:'오른쪽으로 쓸기',pinchin:'오므리기',pinchout:'펼치기',back:'뒤로',fwd:'앞으로',lookup:'사전 찾기'};
 function gesture(name){
   var mac=tos()==='mac';
-  if(name==='pinchin'&&mac&&hello&&hello.os==='mac'){   // this Mac itself: Launchpad has no default key
-    send({t:'act',a:'launchpad'});buzz(15);toast(GL[name]);return;
+  if(mac&&hello&&hello.os==='mac'&&/^(up|down|left|right|pinchin|pinchout)$/.test(name)){
+    releaseMods();send({t:'act',a:name});buzz(15);toast(GL[name]);return;   // this Mac: the server presses the user's own shortcut
   }
   var G={up:mac?[['Ctrl'],'Up']:[['Meta'],'Tab'],down:mac?[['Ctrl'],'Down']:[['Meta'],'d'],
          left:mac?[['Ctrl'],'Right']:[['Ctrl','Meta'],'Right'],right:mac?[['Ctrl'],'Left']:[['Ctrl','Meta'],'Left'],
@@ -371,7 +371,7 @@ pad.addEventListener('touchmove',function(e){
     g.dist+=Math.abs(dx)+Math.abs(dy);g.sx+=dx;g.sy+=dy;
     if(g.n>=3){
       if(ts.length<g.n)return;   // a finger is already lifting
-      if(g.n===3&&cfg.drag3){
+      if(g.n===3&&cfg.d3){
         if(!g.drag3&&(g.dist>=8||d3T)){
           if(d3T){clearTimeout(d3T);d3T=0}else{btn(0,1);buzz(15)}   // re-gripped in time: same drag
           g.drag3=true;
@@ -518,7 +518,7 @@ function bind(id,key){
 }
 bind('sSens','sens');bind('sScr','scroll');bind('sTap','tap');
 $('sRev').checked=rev();
-$('sRev').addEventListener('change',function(){revPref=$('sRev').checked?'1':'0';sv('ph.rev',revPref)});bind('s3d','drag3');bind('sPage','page');bind('sVib','vib');bind('sWake','wake');
+$('sRev').addEventListener('change',function(){revPref=$('sRev').checked?'1':'0';sv('ph.rev',revPref)});bind('s3d','d3');bind('sPage','page');bind('sVib','vib');bind('sWake','wake');
 $('gear').addEventListener('click',function(){sh.className='open'});
 $('sclose').addEventListener('click',function(){sh.className=''});
 sh.addEventListener('click',function(e){if(e.target===sh)sh.className=''});

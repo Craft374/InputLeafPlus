@@ -34,6 +34,9 @@ public:
     virtual void key(Key key, bool down) = 0;
     // Releases every button/key/modifier this injector still holds down.
     virtual void releaseAll() = 0;
+    // A Mac trackpad gesture on THIS machine ("up", "down", "left", "right", "pinchout"): presses the
+    // shortcut the OS has bound to it. false = nothing bound / not supported here.
+    virtual bool systemAction(const QString&) { return false; }
 
     virtual const char* platformName() const = 0;   // "mac", "win" or "other"
     // The OS's scroll direction setting (macOS "natural scrolling"); the page's default.

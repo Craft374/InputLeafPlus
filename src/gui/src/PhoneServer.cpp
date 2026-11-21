@@ -570,10 +570,18 @@ void PhoneServer::handleInput(QTcpSocket* s, const QString& type, const QJsonObj
         }
     } else if (type == QLatin1String("act")) {
 #if defined(Q_OS_MAC)
-        // Launchpad has no default key; macOS 26 renamed it to Apps
-        if (!remote_ && msg.value(QLatin1String("a")).toString() == QLatin1String("launchpad")) {
-            QProcess::startDetached(QStringLiteral("/bin/sh"),
-                                    {QStringLiteral("-c"), QStringLiteral("open -a Launchpad || open -a Apps")});
+        // A gesture while the cursor is on this Mac: press the user's own shortcut for it. Launchpad
+        // has no default key (macOS 26 renamed it to Apps), Mission Control can also be opened as an app.
+        const QString action = msg.value(QLatin1String("a")).toString();
+        if (!remote_ && !injector_->systemAction(action)) {
+            const QString command = action == QLatin1String("pinchin") ? QStringLiteral("open -a Launchpad || open -a Apps")
+                                  : action == QLatin1String("up") ? QStringLiteral("open -a 'Mission Control'")
+                                  : QString();
+            if (!command.isEmpty()) {
+                QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command});
+            } else {
+                sendJson(s, warning(QStringLiteral("맥 키보드 단축키에서 이 동작이 꺼져 있습니다")));
+            }
         }
 #endif
     } else if (type == QLatin1String("key")) {

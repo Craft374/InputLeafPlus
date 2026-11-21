@@ -13,6 +13,7 @@
 
 #include <QMap>
 #include <QString>
+#include <QVariantMap>
 #include <QVector>
 
 #include <functional>
@@ -44,6 +45,17 @@ bool isModifier(Key key);                           // Ctrl, Alt, Shift, Meta
 // becomes there (Screen::modifier). Inverts it: for each modifier the page wants that screen to
 // receive, the local modifier key to press. A modifier no local key reaches is left out.
 QMap<Key, Key> localModifierKeys(const std::function<BaseConfig::Modifier(BaseConfig::Modifier)>& screenMap);
+// The macOS shortcut a Mac trackpad gesture triggers, as the user bound it in
+// com.apple.symbolichotkeys ("AppleSymbolicHotKeys", ids as strings) or the macOS default when it was
+// never changed: "up" Mission Control, "down" app windows, "left"/"right" the space to the right/left,
+// "pinchout" show desktop. flags are CGEventFlags bits (0x800000 = fn, which arrow/F-key shortcuts
+// need). false for other gestures and for a shortcut that is turned off or unassigned.
+struct MacHotKey {
+    int keyCode = -1;
+    quint64 flags = 0;
+};
+bool macGestureHotKey(const QString& gesture, const QVariantMap& symbolicHotKeys, MacHotKey* out);
+
 // Wire names: "a".."z", "0".."9", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/", "`",
 // "Space", "Enter", "Tab", "Backspace", "Delete", "Escape", "Up", "Down", "Left", "Right",
 // "Home", "End", "PageUp", "PageDown", "F1".."F12", "Ctrl", "Alt", "Shift", "Meta", "HangulToggle".

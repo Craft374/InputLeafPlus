@@ -11,6 +11,7 @@
 
 #include "inputleap/PhoneInputMarker.h"
 
+#include <QSettings>
 #include <QString>
 #include <QtGlobal>
 
@@ -19,6 +20,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <iterator>
 #include <set>
 
 #if defined(Q_OS_MAC)
@@ -240,6 +242,35 @@ public:
         return false;
     }
 
+    bool systemAction(const QString& gesture) override
+    {
+        // the user's own bindings (System Settings > Keyboard > Shortcuts); QSettings reads them
+        // through CFPreferences, so recent changes are seen
+        QSettings prefs(QStringLiteral("apple.com"), QStringLiteral("symbolichotkeys"));
+        MacHotKey hotKey;
+        if (!macGestureHotKey(gesture, prefs.value(QStringLiteral("AppleSymbolicHotKeys")).toMap(), &hotKey)) {
+            return false;
+        }
+        // like a real keyboard: modifiers down, the key (with fn when the shortcut has it), modifiers up
+        std::uint64_t flags = CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState) & kCGEventFlagMaskAlphaShift;
+        for (const MacModifier& modifier : kMacModifiers) {
+            if (hotKey.flags & modifier.flag) {
+                flags |= modifier.flag | modifier.deviceFlag;
+                postKeyEvent(modifier.code, true, true, false, flags);
+            }
+        }
+        const std::uint64_t keyFlags = flags | (hotKey.flags & kCGEventFlagMaskSecondaryFn);
+        postKeyEvent(static_cast<CGKeyCode>(hotKey.keyCode), true, false, false, keyFlags);
+        postKeyEvent(static_cast<CGKeyCode>(hotKey.keyCode), false, false, false, keyFlags);
+        for (auto it = std::rbegin(kMacModifiers); it != std::rend(kMacModifiers); ++it) {
+            if (hotKey.flags & it->flag) {
+                flags &= ~(it->flag | it->deviceFlag);
+                postKeyEvent(it->code, false, true, false, flags);
+            }
+        }
+        return true;
+    }
+
     void moveRelative(int dx, int dy) override
     {
         dx = std::clamp(dx, -kMaxMove, kMaxMove);
@@ -340,7 +371,10 @@ protected:
         }
         const int code = macKeyCode(key);
         if (code >= 0) {
-            postKeyEvent(static_cast<CGKeyCode>(code), down, false, repeat, modifierFlags());
+            // real arrow, navigation and F-keys carry fn; shortcuts such as Control+arrow are stored with it
+            const bool fnKey = (key >= Key::Up && key <= Key::F12) || key == Key::Delete;
+            postKeyEvent(static_cast<CGKeyCode>(code), down, false, repeat,
+                         modifierFlags() | (fnKey ? kCGEventFlagMaskSecondaryFn : 0));
         }
     }
 

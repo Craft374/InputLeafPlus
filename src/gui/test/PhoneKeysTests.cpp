@@ -223,3 +223,33 @@ TEST(PhoneKeys, localModifierKeys_notInjective)
     EXPECT_FALSE(none.contains(Key::Alt));
     EXPECT_EQ(none.value(Key::Meta), Key::Meta);
 }
+
+TEST(PhoneKeys, macGestureHotKey)
+{
+    phone::MacHotKey hk;
+    // never changed: the macOS default, Control+fn+Up
+    EXPECT_TRUE(phone::macGestureHotKey(QStringLiteral("up"), {}, &hk));
+    EXPECT_EQ(hk.keyCode, 126);
+    EXPECT_EQ(hk.flags, 0x840000u);
+    // rebound by the user: "show desktop" on Option+D (this repo owner's real setting)
+    const QVariantMap desktop{{QStringLiteral("enabled"), true},
+                              {QStringLiteral("value"), QVariantMap{{QStringLiteral("parameters"),
+                                                                     QVariantList{100, 2, 524288}}}}};
+    EXPECT_TRUE(phone::macGestureHotKey(QStringLiteral("pinchout"), {{QStringLiteral("36"), desktop}}, &hk));
+    EXPECT_EQ(hk.keyCode, 2);
+    EXPECT_EQ(hk.flags, 0x80000u);
+    // listed and on but without parameters (as on the owner's Mac): the default key
+    EXPECT_TRUE(phone::macGestureHotKey(QStringLiteral("left"),
+                                        {{QStringLiteral("81"), QVariantMap{{QStringLiteral("enabled"), true}}}}, &hk));
+    EXPECT_EQ(hk.keyCode, 124);
+    EXPECT_EQ(hk.flags, 0x840000u);
+    // turned off, unassigned (65535) and gestures without a shortcut
+    EXPECT_FALSE(phone::macGestureHotKey(QStringLiteral("left"),
+                                         {{QStringLiteral("81"), QVariantMap{{QStringLiteral("enabled"), false}}}}, &hk));
+    const QVariantMap unbound{{QStringLiteral("enabled"), true},
+                              {QStringLiteral("value"), QVariantMap{{QStringLiteral("parameters"),
+                                                                     QVariantList{65535, 65535, 0}}}}};
+    EXPECT_FALSE(phone::macGestureHotKey(QStringLiteral("down"), {{QStringLiteral("33"), unbound}}, &hk));
+    EXPECT_FALSE(phone::macGestureHotKey(QStringLiteral("pinchin"), {}, &hk));
+    EXPECT_FALSE(phone::macGestureHotKey(QStringLiteral("rm -rf"), {}, &hk));
+}
