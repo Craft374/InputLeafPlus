@@ -1,198 +1,175 @@
+<div align="center">
+
 # InputLeafPlus
 
-InputLeafPlus는 한 대의 키보드와 마우스로 여러 컴퓨터를 제어하는 오픈 소스 소프트웨어입니다. [Input Leap](https://github.com/input-leap/input-leap)을 기반으로 하며, 특히 Windows와 macOS를 함께 사용할 때 필요한 입력 변환, 클립보드 안정성, 빌드 편의성을 보강했습니다.
+**하나의 키보드와 마우스로 Mac과 Windows를 함께 쓰기**
 
-이 저장소의 개선 사항은 원본 프로젝트의 `master` 기준 커밋 `34a34fb2`와 비교해 정리했습니다.
+[![Release](https://img.shields.io/github/v/release/Craft374/InputLeafPlus?label=%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C&color=2ea44f)](https://github.com/Craft374/InputLeafPlus/releases/latest)
+![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
+[![License](https://img.shields.io/badge/license-GPLv2-blue)](LICENSE)
+
+[Input Leap](https://github.com/input-leap/input-leap)을 바탕으로 **Mac ↔ Windows 조합**에 맞춰 다듬은 개인 포크입니다.<br>
+키 배치 변환, 한글 입력, 클립보드, 휴대폰 트랙패드, 버튼 한 번으로 하는 역할 교환을 지원합니다.
+
+</div>
+
+---
+
+## 주요 기능
+
+| | 기능 | 설명 |
+|---|---|---|
+| ⌨️ | **키 배치 변환** | 화면별로 Ctrl/Alt/⌘/⌥ 위치를 바꿉니다. 스페이스바 옆 키는 어느 OS에서든 스페이스바 옆 키로 동작합니다 |
+| 🇰🇷 | **한글과 기능 키** | 한/영 전환, Caps Lock→F18 프리셋, Mac 상단 F1~F12 전달, F17~F20 인식 |
+| 📋 | **클립보드 공유** | 한글 UTF-8과 줄바꿈 변환을 지원합니다. Windows→Mac 복사 불가 문제를 근본적으로 고쳤습니다 |
+| 📱 | **휴대폰 트랙패드** | 앱 설치 없이 휴대폰 브라우저를 Mac 트랙패드처럼 씁니다 |
+| 🔁 | **역할 교환** | 버튼 한 번으로 서버와 클라이언트를 맞바꿉니다. 화면 구성도 함께 넘어갑니다 |
+| 🖱️ | **화면별 스크롤** | 화면마다 스크롤 방향을 따로 정합니다 |
+| 🎮 | **게임 모드 (실험)** | 상대 이동 방식과 `Ctrl+Shift+G` 커서 고정 |
+
+## 설치
+
+[**최신 릴리즈 받기 →**](https://github.com/Craft374/InputLeafPlus/releases/latest)
+
+> [!IMPORTANT]
+> **두 PC를 모두 같은 버전으로 업데이트하세요.** 3.1.0부터 SSL 암호화 기능을 없애고 항상 일반 연결을 씁니다. 그래서 SSL이 켜진 예전 버전과는 연결되지 않습니다.
+
+### macOS (Apple Silicon)
+
+1. `InputLeafPlus-<버전>.dmg`를 열고 앱을 **응용 프로그램** 폴더로 옮깁니다.
+2. 처음 실행할 때 "손상되었거나 확인되지 않은 개발자" 경고가 뜨면 터미널에서 아래 명령을 한 번 실행합니다. 공증받지 않은 개인 빌드라서 생기는 경고입니다.
+   ```bash
+   xattr -cr /Applications/InputLeafPlus.app
+   ```
+3. `시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용`에서 InputLeafPlus를 허용합니다.
+
+### Windows (x64)
+
+1. `InputLeafPlusSetup-<버전>.exe`를 실행해 설치합니다.
+2. 방화벽 허용 창이 뜨면 **허용**을 누릅니다. 서버 역할이면 24800, 휴대폰 트랙패드는 24803, 역할 교환은 24802 포트를 씁니다.
+3. 이미 켜져 있을 때 앱을 다시 실행하면 새로 뜨지 않고 기존 창이 앞으로 나옵니다.
+
+## 빠른 시작
+
+1. 키보드와 마우스가 연결된 PC에서 **서버**를, 다른 PC에서 **클라이언트**를 고릅니다.
+2. 서버의 `서버 설정`에서 클라이언트 화면을 원하는 방향에 배치합니다. 화면 이름은 클라이언트 PC 이름과 같아야 합니다.
+3. 클라이언트에 서버 IP를 입력합니다. 자동 설정을 켜 두면 같은 네트워크의 서버를 찾아 줍니다.
+4. 양쪽에서 **시작**을 누릅니다.
+
+## 📱 휴대폰 트랙패드
+
+설정 창의 `휴대폰 트랙패드`에서 **사용**을 켭니다. 휴대폰을 같은 와이파이에 연결한 뒤 화면에 표시된 주소를 열고 PIN을 입력합니다.
+**현재 서버인 PC의 주소로 접속하세요.** 그러면 서버를 거쳐 두 화면을 모두 조작할 수 있습니다.
+
+Mac 트랙패드와 최대한 같은 느낌을 목표로 했습니다.
+
+| 동작 | 결과 |
+|---|---|
+| 한 손가락 이동 | 커서 이동. Mac과 비슷하게 손가락 속도에 따라 가속됩니다 |
+| 탭 / 두 번 탭 | 클릭 / 더블클릭 |
+| 탭 후 바로 다시 눌러 끌기 | 드래그 (탭하여 끌기) |
+| 두 손가락 탭 | 오른쪽 클릭 |
+| 두 손가락 스크롤 | 픽셀 단위 부드러운 스크롤과 관성. 기본 방향은 PC 설정을 따릅니다 |
+| 두 손가락 오므리기/벌리기 | 확대/축소 (Mac `⌘+`/`⌘-`, Windows `Ctrl+휠`) |
+| 두 손가락 빠르게 좌우로 쓸기 | 뒤로/앞으로 (설정에서 켜기) |
+| 세 손가락 끌기 | 창이나 선택 영역 끌기. 손을 뗀 뒤 0.5초 안에 다시 잡으면 이어집니다 |
+| 세 손가락 탭 | 찾아보기 (Mac) |
+| 네 손가락 쓸기 | 데스크톱 전환, Mission Control / 작업 보기 |
+| 네 손가락 오므리기/펼치기 | Launchpad·시작 메뉴 / 바탕화면 보기 |
+
+- 제스처 단축키는 **커서가 지금 있는 화면의 OS**에 맞춰 보냅니다. 서버의 키 배치 변환 설정도 반영합니다.
+- 한글은 두벌식 키 위치로 보냅니다. 받는 PC의 입력기를 페이지의 `한/영` 버튼으로 한글 상태로 바꿔 주세요.
+- 같은 와이파이의 누구나 접속을 시도할 수 있습니다. 추측하기 어려운 PIN을 쓰고, 공용 네트워크에서는 기능을 꺼 두세요.
+
+## 🔁 역할 교환
+
+두 PC 모두 설정 창의 `PC 간 역할 교환`에서 **사용**을 켜고 같은 페어링 코드(8자 이상)를 입력합니다.
+이후 메인 창의 **역할 교환** 버튼을 누르면 양쪽이 동시에 역할을 바꾸고 다시 시작합니다. 포트와 화면 구성도 함께 넘어갑니다.
+
+- 두 PC의 현재 역할이 서로 달라야 합니다.
+- 서버는 `내부 설정`을 써야 합니다. 외부 설정 파일은 교환되지 않습니다.
 
 ## 원본 대비 개선 사항
 
-### Windows와 macOS 사이의 키보드 입력
+<details>
+<summary><b>키보드</b></summary>
 
-- 화면별 키 매핑 설정 창을 추가했습니다. 서버의 키를 각 클라이언트에서 어떤 키로 보낼지 GUI에서 지정할 수 있습니다.
-- Shift, Ctrl, Alt, Meta, Super 키를 화면별로 다시 배치할 수 있습니다.
-- Windows 키보드를 Mac 배열에 맞추는 프리셋을 제공합니다. `Alt`는 `Command`로, `Windows` 키는 `Option`으로 보냅니다. 스페이스바 옆의 키가 Mac에서도 스페이스바 옆의 키로 동작합니다.
-- 저장된 modifier 설정을 불러올 때 임의로 덮어쓰던 자동 마이그레이션을 제거했습니다. 사용자가 지정한 배치가 그대로 유지됩니다.
-- Caps Lock을 F18로 바꾸는 프리셋을 제공합니다.
-- Caps Lock을 다른 키로 매핑해 원격 화면에서 사용할 때 Windows 로컬 Caps Lock 상태가 함께 바뀌지 않도록 처리했습니다.
-- 키 누름, 키 뗌, 키 반복, 키보드 브로드캐스트에 동일한 화면별 매핑을 적용합니다.
-- 매핑된 보조 키의 원래 modifier 상태가 함께 전달되어 조합키로 오인되는 문제를 방지했습니다.
-- Windows 한/영 키의 가상 키 코드 매핑을 바로잡았습니다.
-- macOS에서 F17~F20 확장 기능 키를 인식하도록 추가했습니다.
-- Mac을 서버로 사용할 때 지정한 USB 입력 장치의 키 입력을 원격 화면으로 보내지 않고 Mac에서만 사용할 수 있습니다.
-- Mac 키보드 상단 기능 키를 Windows에서 F1~F12로 보내는 설정을 제공합니다.
+- 화면별 키 매핑 설정 창과 Shift/Ctrl/Alt/Meta/Super 재배치를 추가했습니다.
+- Windows 키보드를 Mac 배열로 쓰는 프리셋이 있습니다. `Alt`는 `⌘`, `Windows` 키는 `⌥`로 보냅니다.
+- 저장된 modifier 배치를 덮어쓰던 자동 마이그레이션을 없앴습니다.
+- 키 누름, 뗌, 반복, 브로드캐스트에 같은 매핑을 적용합니다. 매핑된 키의 원래 modifier가 새어 나가 조합키로 오인되던 문제도 고쳤습니다.
+- Windows 한/영 가상 키 코드를 바로잡았습니다.
+- Caps Lock을 다른 키로 매핑해도 Windows의 Caps Lock 상태가 함께 바뀌지 않습니다.
+- Mac 서버에서 지정한 USB 입력 장치(여러 개 가능)는 원격으로 보내지 않고 Mac에서만 씁니다.
+- Mac 상단 기능 키를 Windows에서 F1~F12로 보낼 수 있습니다.
 
-Mac 서버의 `설정`에서 `Mac 서버 입력` 항목을 사용하면 됩니다. USB 입력 장치 선택이나 기능 키 설정을 바꾸면 실행 중인 서버에 바로 반영됩니다.
+</details>
 
-### 화면별 스크롤 설정
+<details>
+<summary><b>클립보드</b></summary>
 
-- 클라이언트 화면마다 스크롤 방향을 반대로 설정할 수 있습니다.
-- 이전 개발 버전의 `reverseMouse` 설정은 `reverseScroll`로 자동 호환됩니다.
+- macOS `public.utf8-plain-text`를 지원하고 OS별 줄바꿈을 변환합니다.
+- 화면을 전환하는 순간 서버 클립보드를 즉시 읽습니다. 소유권 알림 순서가 엇갈려도 안전하게 처리합니다.
+- Windows 클립보드를 다른 프로그램이 잠시 점유하고 있으면 재시도합니다. 읽기 실패를 성공으로 보고하던 문제도 고쳤습니다.
+- **Windows→Mac 복사 불가 문제의 원인**: 세션 0에서 도는 서비스가 `OpenInputDesktop()`으로 데스크톱 이름을 읽었는데, 항상 빈 값이 돌아왔습니다. 그래서 매번 로그인 화면으로 오인하고 서버를 `SYSTEM` 권한으로 띄웠고, `SYSTEM` 프로세스는 사용자 클립보드를 읽을 수 없었습니다. 이제 `WTSQueryUserToken()`으로 사용자 토큰을 먼저 시도합니다.
+  - 그 대가로 잠금 화면과 UAC 창은 원격으로 조작할 수 없습니다. 필요하면 권한 상승을 `Always`로 바꿀 수 있지만, 그러면 클립보드 공유가 다시 막힙니다.
 
-### 클립보드 공유 안정성
+</details>
 
-- **Windows에서 복사한 내용이 macOS로 전달되지 않던 문제를 해결했습니다.** Windows 서비스로 동작하는 데몬이 서버 프로세스를 항상 `SYSTEM` 권한으로 실행하고 있었고, `SYSTEM` 프로세스는 로그인한 사용자의 클립보드를 읽을 수 없었습니다. 자세한 내용은 아래 [Windows 서버 권한](#windows-서버-권한) 항목을 참고하세요.
-- macOS의 `public.utf8-plain-text` 형식을 지원해 한글을 포함한 UTF-8 텍스트 전달을 보강했습니다.
-- Windows와 macOS 사이에서 텍스트 줄바꿈을 각 운영체제 형식에 맞게 변환합니다.
-- 화면을 전환하는 순간 서버 클립보드를 즉시 읽어 최신 내용이 빠지는 문제를 줄였습니다.
-- 클립보드 소유권 알림 순서가 엇갈릴 때 발생하던 잘못된 업데이트와 충돌 가능성을 방어했습니다.
-- macOS 클립보드 쓰기 결과를 실제 성공 여부대로 반환하고 Core Foundation 객체를 정리합니다.
-- 클립보드 사용 여부와 최대 크기 옵션을 함께 안정적으로 처리하며, 값이 빠진 잘못된 옵션도 안전하게 무시합니다.
-- 다른 프로그램이 Windows 클립보드를 잠시 점유하고 있으면 곧바로 실패하지 않고 재시도합니다.
-- Windows 클립보드 읽기 실패를 성공으로 보고하던 문제를 바로잡았습니다.
+<details>
+<summary><b>Windows 실행·종료</b></summary>
 
-### Windows 서버 권한
+- 앱은 한 번에 하나만 실행됩니다. 다시 실행하면 기존 창이 앞으로 나옵니다.
+- 서비스는 수동 시작으로 설치됩니다. 앱을 켜면 함께 시작하고, 트레이나 메인 창의 `종료`를 누르면 서비스까지 멈춥니다.
+- 서비스 중지에 실패하면 GUI만 사라지지 않도록 종료를 취소하고 알려 줍니다.
+- 서버로 시작할 때 사용하는 포트의 방화벽 규칙을 자동으로 추가합니다.
 
-Windows에서 복사한 내용이 macOS로 전달되지 않는 문제의 원인이었습니다.
+</details>
 
-데몬(`input-leapd`)은 Windows 서비스이므로 **세션 0**에서 실행됩니다. 서버 프로세스를 띄우기 전에 "지금 로그인 화면인가"를 판별하려고 `OpenInputDesktop()`으로 데스크톱 이름을 읽었는데, 이 API는 **호출한 프로세스가 속한 윈도우 스테이션 안에서만** 동작합니다. 세션 0의 `Service-0x0-3e7$`에서 실행되는 데몬은 로그인한 사용자의 데스크톱을 원리적으로 볼 수 없어 항상 빈 문자열을 받았고, `"" != "Default"`라는 판정 때문에 **매번 로그인 화면으로 오인해 서버를 `SYSTEM` 권한으로 실행**했습니다.
+<details>
+<summary><b>제거한 기능</b></summary>
 
-`SYSTEM` 프로세스는 로그인한 사용자의 OLE 클립보드를 읽을 수 없습니다. 이 때문에 방향에 따라 증상이 갈렸습니다.
+- **SSL/TLS 암호화**: 양쪽 설정이 어긋나면 연결이 조용히 실패하는 주요 원인이어서 통째로 없앴습니다. 인증서, 지문 확인 창, OpenSSL 의존성도 함께 빠졌습니다. 예전 설정의 `--enable-crypto` 같은 옵션은 무시합니다.
+- 연결이 암호화되지 않으므로 **신뢰할 수 있는 집이나 사무실 네트워크에서만** 쓰세요.
 
-| 방향 | 동작 | 결과 |
-| --- | --- | --- |
-| macOS → Windows | `SetClipboardData`로 쓰기 | 정상 |
-| Windows → macOS | `EnumClipboardFormats`로 읽기 | `CF_UNICODETEXT`가 보이지 않아 항상 빈 클립보드 |
+</details>
 
-데스크톱 이름 추측을 걷어내고, **사용자 토큰을 먼저 시도한 뒤 실패할 때만** `winlogon.exe`의 권한으로 되돌아가도록 바꿨습니다. `WTSQueryUserToken()`은 아무도 로그인하지 않았을 때만 실패하므로, 이것이 로그인 화면을 판정하는 정확한 방법입니다.
+## 직접 빌드하기
 
-**알아두어야 할 트레이드오프.** 서버가 일반 사용자 권한으로 실행되므로 잠금 화면과 UAC 창은 다른 컴퓨터에서 조작할 수 없습니다. 잠금 화면 제어가 더 필요하면 GUI 설정에서 권한 상승을 `Always`로 바꾸면 되지만, 그러면 클립보드 공유가 다시 동작하지 않습니다. 둘 중 하나만 선택할 수 있습니다.
+<details>
+<summary><b>macOS</b></summary>
 
-### Windows 서비스 완전 종료
+```bash
+./build_macos.command
+```
 
-- Windows 서비스는 자동 시작이 아닌 수동 시작으로 설치됩니다.
-- InputLeafPlus를 실행할 때 서비스 모드라면 서비스도 함께 시작됩니다.
-- 트레이 아이콘의 `종료`를 누르면 클라이언트 또는 서버 프로세스를 정상 종료한 뒤 백그라운드 서비스까지 중지합니다.
-- Windows 메인 창에서도 `종료` 버튼으로 같은 종료 동작을 실행할 수 있습니다.
-- 종료 요청 후 서비스가 실제로 멈췄는지 확인하며, 기존 설치의 권한이 부족하면 Windows 관리자 승인 경로로 다시 중지합니다.
-- 서비스 중지에 실패하면 백그라운드 프로세스를 남긴 채 GUI만 사라지지 않도록 종료를 취소하고 오류를 알립니다.
-- 기존 설치와의 업그레이드 호환성을 위해 내부 서비스 ID `InputLeap`과 실행 파일명은 유지합니다. 사용자에게 표시되는 제품명과 서비스 이름은 InputLeafPlus입니다.
+Homebrew로 `cmake`, `ninja`, `qt`를 준비한 뒤 ARM64 Release로 빌드합니다. 결과물은 `build/bundle/InputLeafPlus.app`과 DMG입니다.
+빌드가 실패해도 기존 앱은 손상되지 않습니다.
 
-### 휴대폰 트랙패드
+</details>
 
-휴대폰 브라우저를 무선 트랙패드와 키보드로 쓰는 기능입니다. 별도 앱이 필요 없습니다.
-
-- 설정 창의 `휴대폰 트랙패드`에서 `사용`을 켜면 이 PC가 웹 페이지(기본 포트 24803)를 제공합니다. PIN은 처음 켤 때 6자리 숫자로 자동 생성되며 4~16자로 바꿀 수 있습니다.
-- 휴대폰을 PC와 같은 와이파이에 연결한 뒤, 설정 창과 로그에 표시된 주소를 열고 PIN을 입력합니다.
-- **현재 서버 역할인 PC의 주소로 접속해야 합니다.** 입력은 접속한 PC에 주입되어 InputLeafPlus가 일반 마우스·키보드 입력처럼 반대편 PC로 전달합니다. 클라이언트 PC에 접속하면 그 PC만 조작됩니다(페이지에 경고가 표시됩니다).
-- 한글은 두벌식 키 위치로 전달하므로 받는 쪽 PC의 입력기가 한글 상태여야 합니다. 페이지의 `한/영` 버튼으로 전환합니다.
-- Windows에서 처음 실행하면 방화벽 허용 창이 나타납니다. 허용해야 휴대폰이 접속할 수 있습니다.
-- macOS에서는 `시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용`에서 앱을 허용해야 입력이 주입됩니다.
-- Windows에서는 UAC(관리자 권한) 창과 잠금 화면을 조작할 수 없습니다.
-- 실제 휴대폰과 두 PC 조합으로는 아직 검증하지 않았습니다. 같은 와이파이의 누구나 접속을 시도할 수 있으므로 PIN을 추측하기 어렵게 두고, 신뢰할 수 없는 네트워크에서는 끄십시오.
-
-### 서버/클라이언트 역할 교환
-
-버튼 한 번으로 두 PC의 서버/클라이언트 역할을 서로 바꿉니다. 화면 구성도 함께 넘어갑니다.
-
-- 두 PC 모두 설정 창의 `PC 간 역할 교환`에서 `사용`을 켜고 **같은 페어링 코드**(8자 이상)를 입력합니다. `새 코드 만들기`로 만든 코드를 상대 PC에 그대로 입력하면 됩니다. 포트는 24802입니다.
-- 한쪽(처음 한 번)에 상대 PC 주소를 입력하면 이후에는 교환할 때 자동으로 기억합니다.
-- 메인 창의 `역할 교환` 버튼(또는 트레이/메뉴 항목)을 누르면 상대 PC와 코드를 확인한 뒤 양쪽이 동시에 역할을 바꾸고 다시 시작합니다. 새 서버의 화면 구성에 두 PC 이름이 모두 있어야 합니다.
-- 두 PC의 현재 역할이 서로 달라야 하고, 서버 쪽은 `내부 설정`을 써야 합니다(외부 설정 파일은 교환할 수 없습니다). 설정 창 같은 대화상자가 열려 있으면 거절됩니다.
-- Windows에서 처음 실행하면 방화벽 허용 창이 나타납니다. 서버가 될 PC는 24800 포트의 수신도 허용되어야 합니다.
-- 두 PC가 서로 다른 역할로 켜져 있는지는 직접 확인해야 합니다. 두 PC를 실제로 교환해 본 검증은 아직 하지 않았습니다.
-
-### 게임 모드(실험)
-
-게임에서 마우스 커서가 화면 가장자리로 넘어가 버리는 문제를 줄이기 위한 실험 기능입니다.
-
-- 서버 PC의 `서버 설정`에서 `게임 모드 (실험)`을 켭니다. 상대 마우스 이동이 켜지고 `Ctrl+Shift+G`로 커서를 현재 화면에 고정하거나 해제할 수 있습니다.
-- 서버를 다시 시작해야 적용됩니다.
-- 게임마다 동작이 다를 수 있고 아직 실제 게임으로 검증하지 않았습니다.
-
-### 빌드와 패키징
-
-- Windows용 `build_windows.bat`와 `clean_build.ps1`을 추가했습니다.
-- Windows 빌드에 필요한 Visual Studio C++ Build Tools, Qt 6.6.3, OpenSSL 3, Bonjour 호환 SDK를 확인하고 필요한 항목은 사용자 동의 후 준비합니다.
-- 실행 중인 서비스를 안전하게 멈춘 뒤 빌드 폴더를 교체하고, 원래 실행 중이었던 경우에만 다시 시작합니다.
-- macOS용 `build_macos.command`를 추가해 Homebrew 의존성 확인부터 ARM64 Release 빌드까지 한 번에 진행합니다.
-- macOS 앱을 임시 스테이징 번들에서 완성한 뒤 서명 검증에 성공한 결과만 교체해, 실패한 빌드가 기존 앱을 손상하지 않도록 했습니다.
-- macOS 앱과 DMG 이름, Windows 설치 파일과 바로가기 이름을 InputLeafPlus로 통일했습니다.
-- CI 빌드 대상을 Windows x86-64/Qt 6과 macOS ARM64/Qt 6 중심으로 정리했습니다.
-
-## 빌드
-
-### Windows
-
-저장소 루트에서 실행합니다.
+<details>
+<summary><b>Windows</b></summary>
 
 ```powershell
 .\build_windows.bat
 ```
 
-이 스크립트가 Visual Studio C++ Build Tools, Qt 6.6.3, OpenSSL 3, Bonjour 호환 SDK를 확인하고 없는 항목은 동의를 받아 준비합니다. 실행 중인 서비스가 있으면 안전하게 멈춘 뒤 빌드하고, 원래 실행 중이었던 경우에만 다시 시작합니다.
+Visual Studio C++ Build Tools, Qt 6.6.3, Bonjour 호환 SDK를 확인하고, 없는 항목은 동의를 받아 준비합니다.
 
 | 경로 | 내용 |
 | --- | --- |
-| `build\input-leap-install\` | 실행 파일 모음. 여기의 `input-leap.exe`를 실행하면 됩니다 |
-| `build\bin\Release\` | 링커가 만든 원본 실행 파일 |
-| `build\installer-inno\bin\` | 설치 파일. Inno Setup 6이 설치되어 있을 때만 생성됩니다 |
+| `build\input-leap-install\` | 실행 파일 모음. `input-leap.exe` 실행 |
+| `build\installer-inno\bin\` | 설치 파일 (Inno Setup 6이 있을 때) |
 
-#### 데몬을 고쳤다면 수동으로 복사해야 합니다
+서비스는 **설치된 위치**에서 실행됩니다. 그래서 데몬(`input-leapd`)을 고쳤다면 설치 파일로 다시 설치하거나 `C:\Program Files\InputLeafPlus\`에 직접 복사해야 합니다.
 
-Windows 서비스는 빌드 폴더가 아니라 **설치된 위치**에서 실행됩니다.
+데몬 로그는 `C:\ProgramData\InputLeap\input-leapd.log`에 남습니다.
 
-```powershell
-sc qc InputLeap
-# BINARY_PATH_NAME : "C:\Program Files\InputLeap\input-leapd.exe"
-```
-
-`build_windows.bat`은 `build\input-leap-install\`만 갱신하므로, 데몬 코드(`MSWindowsWatchdog`, `DaemonApp` 등)를 고친 뒤 재빌드만 하면 **서비스는 계속 예전 바이너리를 실행합니다.** 관리자 PowerShell에서 직접 교체해야 합니다.
-
-```powershell
-Stop-Service InputLeap -Force
-Copy-Item "<저장소>\build\input-leap-install\input-leapd.exe" `
-          "C:\Program Files\InputLeap\input-leapd.exe" -Force
-Start-Service InputLeap
-```
-
-GUI(`input-leap.exe`)와 서버(`input-leaps.exe`)는 GUI를 실행한 폴더 기준으로 동작하므로 재빌드만으로 충분합니다.
-
-#### 개별 대상만 빌드하기
-
-전체 재빌드 없이 특정 대상만 다시 만들 수 있습니다. `cmake`는 PATH에 없을 수 있으므로 전체 경로를 씁니다.
-
-```powershell
-& "C:\Program Files\CMake\bin\cmake.exe" --build build --config Release --target input-leap
-```
-
-주요 대상: `input-leap`(GUI), `input-leaps`(서버), `input-leapc`(클라이언트), `input-leapd`(데몬), `platform`(플랫폼 라이브러리), `unittests`, `integtests`.
-
-#### 테스트
-
-```powershell
-.\build\bin\Release\unittests.exe
-.\build\bin\Release\integtests.exe
-```
-
-클립보드만 확인하려면 `integtests.exe --gtest_filter=*Clipboard*`를 씁니다.
-
-#### 로그 위치
-
-| 파일 | 내용 |
-| --- | --- |
-| `C:\ProgramData\InputLeap\input-leapd.log` | 데몬 로그. 권한 상승과 서버 실행 여부가 여기에 남습니다 |
-| GUI의 로그 창 | 서버 로그. 클립보드 전송 내역을 볼 수 있습니다 |
-
-서버가 어떤 계정으로 실행 중인지 확인하려면 다음을 실행합니다. 정상이라면 `SYSTEM`이 아니라 로그인한 사용자 이름이 나와야 합니다.
-
-```powershell
-Get-CimInstance Win32_Process -Filter "Name='input-leaps.exe'" |
-    ForEach-Object { (Invoke-CimMethod -InputObject $_ -MethodName GetOwner).User }
-```
-
-### macOS Apple Silicon
-
-```bash
-chmod +x build_macos.command
-./build_macos.command
-```
-
-Homebrew 의존성 확인부터 ARM64 Release 빌드까지 한 번에 진행합니다. 임시 스테이징 번들에서 앱을 완성한 뒤 서명 검증에 성공한 결과만 교체하므로, 빌드가 실패해도 기존 앱은 손상되지 않습니다.
-
-완성된 앱은 `build/bundle/InputLeafPlus.app`에 생성됩니다.
+</details>
 
 ## 호환성과 라이선스
 
-설정 파일 형식, 네트워크 프로토콜, `input-leap`, `input-leaps`, `input-leapc`, `input-leapd` 실행 파일명은 원본과의 호환성을 위해 유지합니다. 기존 InputLeap 사용자 설정은 InputLeafPlus 최초 실행 시 자동으로 가져옵니다.
+설정 형식과 실행 파일 이름(`input-leap`, `input-leaps`, `input-leapc`, `input-leapd`)은 원본과 같습니다. 기존 InputLeap 설정은 처음 실행할 때 자동으로 가져옵니다.
 
-이 프로젝트는 원본 Input Leap과 동일하게 GNU General Public License v2에 따라 배포됩니다. 자세한 내용은 [LICENSE](LICENSE)를 확인하세요.
+원본 Input Leap과 같은 **GNU GPL v2**로 배포합니다. 자세한 내용은 [LICENSE](LICENSE)를 보세요.

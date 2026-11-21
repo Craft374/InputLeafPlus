@@ -1,14 +1,14 @@
 
 set(INPUTLEAP_VERSION_MAJOR 3)
-set(INPUTLEAP_VERSION_MINOR 0)
-set(INPUTLEAP_VERSION_PATCH 3)
+set(INPUTLEAP_VERSION_MINOR 1)
+set(INPUTLEAP_VERSION_PATCH 0)
 if((NOT DEFINED INPUTLEAP_VERSION_DESC) OR (INPUTLEAP_VERSION_DESC STREQUAL git))
     find_program (GIT_BINARY git)
     if (GIT_BINARY STREQUAL "GIT_BINARY-NOTFOUND")
         set(INPUTLEAP_VERSION_DESC unknown)
     else()
         execute_process (
-            COMMAND git log --pretty=format:'git-%cs-%h' -1
+            COMMAND git log --pretty=format:git-%cs-%h -1
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE INPUTLEAP_VERSION_DESC
             OUTPUT_STRIP_TRAILING_WHITESPACE
