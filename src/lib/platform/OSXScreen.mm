@@ -884,13 +884,15 @@ void OSXScreen::fakeMouseRelativeMove(std::int32_t dx, std::int32_t dy) const
 
 void OSXScreen::fakeMouseWheel(std::int32_t xDelta, std::int32_t yDelta) const
 {
-	if (xDelta != 0 || yDelta != 0) {
+	// whole lines as always, but a smooth-scrolling server's sub-notch deltas add up instead of
+	// each one truncating to 0 (whole notches convert exactly, so a wheel feels the same)
+	const int xLines = inputleap::takeWhole(&m_wheelLinesX, map_scroll_wheel_to_osx(xDelta));
+	const int yLines = inputleap::takeWhole(&m_wheelLinesY, map_scroll_wheel_to_osx(yDelta));
+	if (xLines != 0 || yLines != 0) {
 		// create a scroll event, post it and release it.  not sure if kCGScrollEventUnitLine
 		// is the right choice here over kCGScrollEventUnitPixel
 		CGEventRef scrollEvent = CGEventCreateScrollWheelEvent(
-            nullptr, kCGScrollEventUnitLine, 2,
-            map_scroll_wheel_to_osx(yDelta),
-            -map_scroll_wheel_to_osx(xDelta));
+            nullptr, kCGScrollEventUnitLine, 2, yLines, -xLines);
 
         // Fix for sticky keys
         CGEventFlags modifiers = m_keyState->getModifierStateAsOSXFlags();
@@ -1712,11 +1714,11 @@ std::int32_t OSXScreen::map_scroll_wheel_from_osx(float x) const
     return static_cast<std::int32_t>(120.0 * d);
 }
 
-std::int32_t OSXScreen::map_scroll_wheel_to_osx(float x) const
+double OSXScreen::map_scroll_wheel_to_osx(float x) const
 {
 	// use server's acceleration with a little boost since other platforms
 	// take one wheel step as a larger step than the mac does.
-    return static_cast<std::int32_t>(3.0 * x / 120.0);
+    return 3.0 * x / 120.0;
 }
 
 double
@@ -2298,6 +2300,24 @@ OSXScreen::handleCGInputEvent(CGEventTapProxy proxy,
 			return event;
 			break;
 		case kCGEventScrollWheel:
+			if (CGEventGetIntegerValueField(event, kCGEventSourceUserData) == kPhoneInjectMarker) {
+				// phone scroll is in pixels (axis 1 = up, axis 2 = left): convert at a fixed rate and
+				// keep the remainder, so slow two-finger scrolls still reach the client
+				if (CGEventGetIntegerValueField(event, kCGScrollWheelEventScrollPhase) == kCGScrollPhaseBegan) {
+					screen->m_phoneWheelX = screen->m_phoneWheelY = 0;
+				}
+				if (!screen->m_isOnScreen) {
+					const double perPx = 120.0 / kPhonePxPerNotch;
+					const int x = takeWhole(&screen->m_phoneWheelX,
+						-perPx * CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis2));
+					const int y = takeWhole(&screen->m_phoneWheelY,
+						perPx * CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1));
+					if (x != 0 || y != 0) {
+						screen->onMouseWheel(x, y);
+					}
+				}
+				break;
+			}
             screen->onMouseWheel(screen->map_scroll_wheel_from_osx(
 								 CGEventGetIntegerValueField(event, kCGScrollWheelEventFixedPtDeltaAxis2) / 65536.0f),
                                  screen->map_scroll_wheel_from_osx(

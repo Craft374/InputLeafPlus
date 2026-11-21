@@ -39,7 +39,7 @@ namespace {
 
 // The server also clamps these; repeated here because the injector is the last line before the OS.
 [[maybe_unused]] constexpr int kMaxMove = 2000;
-[[maybe_unused]] constexpr int kMaxScroll = 50;
+[[maybe_unused]] constexpr double kMaxScroll = 2000;   // pixels
 
 // Remembers what is held so releaseAll() is exact and a key-up without a key-down is ignored.
 // Platforms implement only the postXxx() hooks, called AFTER the held state was updated.
@@ -88,11 +88,14 @@ public:
                 }
             }
         }
+        endScroll();
     }
 
 protected:
     virtual void postButton(int button, bool down) = 0;
     virtual void postKey(Key key, bool down, bool repeat) = 0;
+    // Closes a scroll phase / momentum the page left open (it disconnected mid-gesture).
+    virtual void endScroll() {}
 
     bool buttonHeld(int button) const { return buttons_[button]; }
     bool keyHeld(Key key) const { return keys_.count(key) != 0; }
@@ -199,9 +202,32 @@ CGPoint clampToDisplays(CGPoint pos)
     return pos;
 }
 
+// The user's double-click speed (System Settings), the value NSEvent.doubleClickInterval reads.
+std::chrono::milliseconds doubleClickInterval()
+{
+    double seconds = 0.5;
+    CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR("com.apple.mouse.doubleClickThreshold"),
+                                                        kCFPreferencesAnyApplication);
+    if (value != nullptr) {
+        if (CFGetTypeID(value) == CFNumberGetTypeID()) {
+            CFNumberGetValue(static_cast<CFNumberRef>(value), kCFNumberDoubleType, &seconds);
+        }
+        CFRelease(value);
+    }
+    return std::chrono::milliseconds(std::lround(std::clamp(seconds, 0.15, 5.0) * 1000));
+}
+
 class MacInjector final : public TrackingInjector {
 public:
     const char* platformName() const override { return "mac"; }
+
+    bool naturalScroll() const override
+    {
+        Boolean valid = false;
+        const Boolean natural = CFPreferencesGetAppBooleanValue(CFSTR("com.apple.swipescrolldirection"),
+                                                                kCFPreferencesAnyApplication, &valid);
+        return !valid || natural;   // never written = the macOS default, natural
+    }
 
     bool isAvailable(QString* why) const override
     {
@@ -222,52 +248,62 @@ public:
         const int steps = (std::max(std::abs(dx), std::abs(dy)) + 49) / 50;
         // CGEventPost is asynchronous: advance our own position instead of re-reading the cursor per step
         CGPoint pos;
-        if (steps == 0 || !cursorPos(&pos)) {
+        if (steps == 0 || !currentPos(&pos)) {
             return;
         }
+        double length = 0;
         for (int i = 1; i <= steps; ++i) {
             const int stepX = dx * i / steps - dx * (i - 1) / steps;
             const int stepY = dy * i / steps - dy * (i - 1) / steps;
             pos = clampToDisplays(CGPointMake(pos.x + stepX, pos.y + stepY));
             postMove(pos, stepX, stepY);
+            length += std::hypot(stepX, stepY);
         }
+        pos_ = pos;
+        lastMoveLength_ = length;
+        lastMove_ = std::chrono::steady_clock::now();
     }
 
-    void scroll(int dx, int dy) override
+    void scroll(double dx, double dy, int phase, int momentum) override
     {
-        dx = std::clamp(dx, -kMaxScroll, kMaxScroll);
-        dy = std::clamp(dy, -kMaxScroll, kMaxScroll);
-        if (dx == 0 && dy == 0) {
+        if (phase == 1) {
+            scrollX_ = scrollY_ = 0;
+        }
+        const int x = inputleap::takeWhole(&scrollX_, std::clamp(dx, -kMaxScroll, kMaxScroll));
+        const int y = inputleap::takeWhole(&scrollY_, std::clamp(dy, -kMaxScroll, kMaxScroll));
+        // apps follow the phases, so Began/Ended and momentum Begin/End go out even without movement
+        const bool phaseEdge = phase == 1 || phase == 4 || momentum == 1 || momentum == 3;
+        if (x == 0 && y == 0 && !phaseEdge) {
             return;
         }
-        // ponytail: one notch = one line. Horizontal: the wheel2 argument is positive = left (as
-        // OSXScreen::fakeMouseWheel assumes) but the server tap forwards FixedPtDeltaAxis2 as is,
-        // so that field gets the "right is positive" value. Verify the direction on the devices.
-        CGEventRef event = CGEventCreateScrollWheelEvent(nullptr, kCGScrollEventUnitLine, 2, dy, -dx);
-        if (event == nullptr) {
-            return;
-        }
-        CGEventSetIntegerValueField(event, kCGScrollWheelEventFixedPtDeltaAxis1, static_cast<int64_t>(dy) * 65536);
-        CGEventSetIntegerValueField(event, kCGScrollWheelEventFixedPtDeltaAxis2, static_cast<int64_t>(dx) * 65536);
-        CGEventSetFlags(event, modifierFlags());
-        CGEventPost(kCGHIDEventTap, event);
-        CFRelease(event);
+        postScroll(x, y, phase, momentum);
     }
 
 protected:
+    void endScroll() override
+    {
+        if (scrollOpen_) {
+            postScroll(0, 0, 4, 0);
+        }
+        if (momentumOpen_) {
+            postScroll(0, 0, 0, 3);
+        }
+        scrollX_ = scrollY_ = 0;
+    }
+
     void postButton(int button, bool down) override
     {
         static const CGEventType downTypes[3] = {kCGEventLeftMouseDown, kCGEventRightMouseDown, kCGEventOtherMouseDown};
         static const CGEventType upTypes[3] = {kCGEventLeftMouseUp, kCGEventRightMouseUp, kCGEventOtherMouseUp};
 
         CGPoint pos;
-        if (!cursorPos(&pos)) {
+        if (!currentPos(&pos)) {
             return;
         }
         if (down) {
             // the server ignores the click state but local apps use it for double clicks
             const auto now = std::chrono::steady_clock::now();
-            const bool again = button == lastButton_ && now - lastDown_ < std::chrono::milliseconds(500) &&
+            const bool again = button == lastButton_ && now - lastDown_ < doubleClickInterval() &&
                 std::hypot(pos.x - lastPos_.x, pos.y - lastPos_.y) <= 5;
             clickCount_ = again ? clickCount_ + 1 : 1;
             lastButton_ = button;
@@ -309,6 +345,44 @@ protected:
     }
 
 private:
+    // A click right after our own move may read the cursor before that (asynchronous) move landed.
+    // Our position wins only while that fresh move can explain the gap; otherwise (hardware mouse,
+    // the server warping the cursor) the live cursor does.
+    bool currentPos(CGPoint* pos) const
+    {
+        if (!cursorPos(pos)) {
+            return false;
+        }
+        const bool fresh = std::chrono::steady_clock::now() - lastMove_ < std::chrono::milliseconds(100);
+        if (fresh && std::hypot(pos->x - pos_.x, pos->y - pos_.y) <= lastMoveLength_ + 1) {
+            *pos = pos_;
+        }
+        return true;
+    }
+
+    // Pixel units make it a continuous (trackpad) event; CGEventCreateScrollWheelEvent then fills
+    // the point, line and fixed-point deltas consistently. Axis 2 is positive = left on macOS.
+    void postScroll(int dx, int dy, int phase, int momentum)
+    {
+        CGEventRef event = CGEventCreateScrollWheelEvent(nullptr, kCGScrollEventUnitPixel, 2, dy, -dx);
+        if (event == nullptr) {
+            return;
+        }
+        CGEventSetIntegerValueField(event, kCGScrollWheelEventScrollPhase, phase);
+        CGEventSetIntegerValueField(event, kCGScrollWheelEventMomentumPhase, momentum);
+        // lets the server tap (OSXScreen::handleCGInputEvent) convert the pixels for a remote screen
+        CGEventSetIntegerValueField(event, kCGEventSourceUserData, inputleap::kPhoneInjectMarker);
+        CGEventSetFlags(event, modifierFlags());
+        CGEventPost(kCGHIDEventTap, event);
+        CFRelease(event);
+        if (phase == 1 || phase == 4) {
+            scrollOpen_ = phase == 1;
+        }
+        if (momentum == 1 || momentum == 3) {
+            momentumOpen_ = momentum == 1;
+        }
+    }
+
     // Modifier flags of what the PHONE holds (hardware modifiers are not merged in), plus the live
     // Caps Lock bit: the Mac keeps AlphaShift on and OSXScreen::onKey would see its loss as a modifier release.
     CGEventFlags modifierFlags() const
@@ -379,6 +453,12 @@ private:
     int lastButton_ = -1;
     std::chrono::steady_clock::time_point lastDown_;
     CGPoint lastPos_ = {0, 0};
+    CGPoint pos_ = {0, 0};                  // where our last move put the cursor
+    double lastMoveLength_ = 0;
+    std::chrono::steady_clock::time_point lastMove_;
+    double scrollX_ = 0, scrollY_ = 0;      // sub-pixel scroll left over
+    bool scrollOpen_ = false;               // Began posted, Ended not yet
+    bool momentumOpen_ = false;
 };
 
 std::unique_ptr<InputInjector> makeInjector() { return std::make_unique<MacInjector>(); }
@@ -457,19 +537,25 @@ public:
         send(&input, 1);
     }
 
-    void scroll(int dx, int dy) override
+    void scroll(double dx, double dy, int phase, int) override
     {
-        dx = std::clamp(dx, -kMaxScroll, kMaxScroll);
-        dy = std::clamp(dy, -kMaxScroll, kMaxScroll);
+        if (phase == 1) {
+            wheelX_ = wheelY_ = 0;
+        }
+        // pixels -> wheel units at a fixed rate; modern apps scroll smoothly with sub-120 deltas
+        // and the remainder carries over, so slow scrolls are not lost
+        const double perPx = WHEEL_DELTA / inputleap::kPhonePxPerNotch;
+        const int y = inputleap::takeWhole(&wheelY_, std::clamp(dy, -kMaxScroll, kMaxScroll) * perPx);
+        const int x = inputleap::takeWhole(&wheelX_, std::clamp(dx, -kMaxScroll, kMaxScroll) * perPx);
         INPUT inputs[2];
         UINT count = 0;
-        if (dy != 0) {
+        if (y != 0) {
             inputs[count] = mouseInput(MOUSEEVENTF_WHEEL);
-            inputs[count++].mi.mouseData = static_cast<DWORD>(dy * WHEEL_DELTA);
+            inputs[count++].mi.mouseData = static_cast<DWORD>(y);
         }
-        if (dx != 0) {
+        if (x != 0) {
             inputs[count] = mouseInput(MOUSEEVENTF_HWHEEL);
-            inputs[count++].mi.mouseData = static_cast<DWORD>(dx * WHEEL_DELTA);
+            inputs[count++].mi.mouseData = static_cast<DWORD>(x);
         }
         if (count != 0) {
             send(inputs, count);
@@ -526,6 +612,7 @@ private:
     }
 
     bool failing_ = false;
+    double wheelX_ = 0, wheelY_ = 0;        // sub-unit wheel left over
 };
 
 std::unique_ptr<InputInjector> makeInjector() { return std::make_unique<WinInjector>(); }
@@ -536,7 +623,7 @@ class OtherInjector final : public InputInjector {
 public:
     void moveRelative(int, int) override {}
     void mouseButton(int, bool) override {}
-    void scroll(int, int) override {}
+    void scroll(double, double, int, int) override {}
     void key(Key, bool) override {}
     void releaseAll() override {}
     const char* platformName() const override { return "other"; }

@@ -11,6 +11,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QJsonObject>
 
 // Pure HTTP/WebSocket (RFC 6455) codec for the phone page server. No sockets, no Qt event loop.
 namespace phone {
@@ -49,5 +50,20 @@ QByteArray encodeWsClose(quint16 code);
 
 // Compares without an early exit on the first differing byte.
 bool constantTimeEquals(const QByteArray& a, const QByteArray& b);
+
+// Finite JSON number; a missing, non-numeric or non-finite value is rejected.
+bool jsonNumber(const QJsonObject& msg, const char* key, double* out);
+// Exact integer in [lo, hi]; anything else is rejected (no clamping).
+bool jsonExactInt(const QJsonObject& msg, const char* key, int lo, int hi, int* out);
+
+constexpr double kMaxScrollPx = 2000;
+
+struct ScrollMessage {
+    double dx = 0, dy = 0;      // pixels, clamped to +-kMaxScrollPx
+    int phase = 0;              // 0, 1 began, 2 changed, 4 ended (macOS CGScrollPhase)
+    int momentum = 0;           // 0, 1 begin, 2 continue, 3 end (CGMomentumScrollPhase)
+};
+// {"t":"sc","dx":px,"dy":px,"ph":phase,"mo":momentum}; ph/mo may be absent (= 0).
+bool parseScroll(const QJsonObject& msg, ScrollMessage* out);
 
 } // namespace phone

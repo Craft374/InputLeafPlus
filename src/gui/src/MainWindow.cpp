@@ -754,6 +754,16 @@ void MainWindow::updateFromLogLine(const QString &line)
 
 void MainWindow::checkConnected(const QString& line)
 {
+    // The phone page picks gesture keys for the screen under the cursor (Server.cpp logs every
+    // switch at INFO; below that level the page falls back to this PC's OS).
+    static const QRegularExpression switched(QString::fromLatin1(R"re((?:switch|jump) from ".*" to "(.*)" at -?\d+,-?\d+)re"));
+    const QRegularExpressionMatch match = switched.match(line);
+    if (match.hasMatch()) {
+        updatePhoneScreen(match.captured(1));
+    } else if (line.contains("started server")) {
+        updatePhoneScreen(getScreenName());
+    }
+
     // TODO: implement ipc connection state messages to replace this hack.
     if (connection_state() == AppConnectionState::CONNECTING && app_role() == AppRole::Client &&
         line.contains("failed to connect to server"))
@@ -1176,6 +1186,7 @@ void MainWindow::set_connection_state(AppConnectionState state)
         connect(ui_->m_pButtonToggleStart, &QPushButton::clicked, ui_->m_pActionStartCmdApp, &QAction::trigger);
         ui_->m_pButtonToggleStart->setText(tr("&Start"));
         ui_->m_pButtonReload->setEnabled(false);
+        updatePhoneScreen(getScreenName());     // no server = the cursor is on this PC again
     }
 
     bool connected = false;
@@ -1428,6 +1439,27 @@ void MainWindow::updatePhoneServer()
     }
     appConfig().saveSettings();   // keeps a freshly generated PIN
     appendLogInfo(tr("휴대폰 트랙패드 주소: %1").arg(PhoneServer::localUrls(port).join(QStringLiteral(", "))));
+}
+
+void MainWindow::updatePhoneScreen(const QString& activeScreen)
+{
+    if (activeScreen == getScreenName()) {
+        m_pPhoneServer->setActiveScreen(false, {});
+        return;
+    }
+    // The client applies that screen's modifier mapping to every key this server sends, so the
+    // phone has to press whichever local modifier turns into the one it means.
+    // shortcut: reads the GUI's layout; with "use external config file" the server's may differ.
+    const ServerConfig& config = serverConfig();
+    const Screen* screen = nullptr;
+    for (const Screen& s : config.screens()) {
+        if (s.name() == activeScreen) {
+            screen = &s;
+        }
+    }
+    m_pPhoneServer->setActiveScreen(true, phone::localModifierKeys([screen](BaseConfig::Modifier m) {
+        return screen != nullptr ? screen->modifier(m) : m;
+    }));
 }
 
 void MainWindow::updatePeerLink()

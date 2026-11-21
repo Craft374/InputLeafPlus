@@ -14,7 +14,8 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--fg);
  font:15px/1.3 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
- -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+ touch-action:none}   /* iOS ignores user-scalable=no: no double-tap/pinch page zoom anywhere */
 #app{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;flex-direction:column;
  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 #bar{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:14px}
@@ -36,7 +37,7 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 #kb{display:none;padding-bottom:4px}
 #kb.open{display:block}
 #txt{flex:1;min-width:0;height:44px;border:1px solid var(--bd);border-radius:10px;padding:0 10px;background:var(--pad);color:var(--fg);
- font-size:16px;-webkit-user-select:text;user-select:text}
+ font-size:16px;-webkit-user-select:text;user-select:text;touch-action:manipulation}
 #kb.direct #send{display:none}
 .hint{padding:0 12px;font-size:12px;color:var(--sub)}
 #pin,#sheet{position:fixed;left:0;top:0;width:100%;height:100%;display:none;z-index:5}
@@ -44,12 +45,12 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 #pin.open{display:flex}
 #pin .box{width:min(320px,86%);display:flex;flex-direction:column;gap:12px;text-align:center}
 #pin input{height:48px;border:1px solid var(--bd);border-radius:10px;padding:0 12px;font-size:18px;text-align:center;background:var(--pad);color:var(--fg);
- -webkit-user-select:text;user-select:text}
+ -webkit-user-select:text;user-select:text;touch-action:manipulation}
 #perr{color:var(--er);min-height:1.3em;font-size:14px}
 #sheet{background:rgba(0,0,0,.45);align-items:flex-end}
 #sheet.open{display:flex}
 #sheet .box{width:100%;max-height:85%;overflow-y:auto;background:var(--bg);border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));
- display:flex;flex-direction:column;gap:14px}
+ display:flex;flex-direction:column;gap:14px;touch-action:pan-y}
 #sheet label{display:flex;justify-content:space-between;align-items:center;gap:12px}
 #sheet input[type=range]{flex:1;max-width:55%}
 #sheet input[type=checkbox]{width:22px;height:22px}
@@ -61,7 +62,7 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 <div id="app">
  <div id="bar"><span id="dot"></span><span id="st">연결 안 됨</span></div>
  <div id="warn">이 PC는 InputLeap 클라이언트입니다. 휴대폰 입력은 이 PC에만 적용됩니다. 마우스·키보드를 공유하는 서버 PC 주소로 다시 접속하세요.</div>
- <div id="pad"><span id="padhint">한 손가락: 이동 · 탭 클릭 · 길게 눌러 끌기<br>두 손가락: 탭=우클릭 · 쓸기=스크롤 · 오므리기/펼치기=축소/확대 · 빠르게 좌우 쓸기=뒤로/앞으로<br>세 손가락: 끌기 · 탭=사전 찾기 (설정에서 끄면 쓸기=화면 전환)<br>네 손가락: 위=Mission Control · 아래=앱 창 · 좌우=데스크톱 이동 · 오므리기=Launchpad · 펼치기=바탕화면</span></span></div>
+ <div id="pad"><span id="padhint">한 손가락: 이동 · 탭 클릭 · 탭 후 바로 다시 눌러 끌기<br>두 손가락: 탭=우클릭 · 쓸기=스크롤 · 오므리기/펼치기=축소/확대 · 빠르게 좌우 쓸기=뒤로/앞으로<br>세 손가락: 끌기 · 탭=사전 찾기 (설정에서 끄면 쓸기=화면 전환)<br>네 손가락: 위=Mission Control · 아래=앱 창 · 좌우=데스크톱 이동 · 오므리기=Launchpad · 펼치기=바탕화면</span></span></div>
  <div id="kb">
   <div class="row"><input id="txt" type="text" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="입력할 내용"><button class="b" id="send">전송</button><button class="b" id="dir">직접 입력</button></div>
   <div class="hint" id="dirhint" style="display:none">직접 입력: 글자(단어)가 확정되면 바로 전송됩니다.</div>
@@ -90,7 +91,7 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 <div id="sheet"><div class="box">
  <label>커서 속도 <input id="sSens" type="range" min="0.5" max="4" step="0.1"></label>
  <label>스크롤 속도 <input id="sScr" type="range" min="0.5" max="4" step="0.1"></label>
- <label>스크롤 방향 반전 <input id="sRev" type="checkbox"></label>
+ <label>스크롤 방향 반전 (기본값: PC 설정) <input id="sRev" type="checkbox"></label>
  <label>탭하여 클릭 <input id="sTap" type="checkbox"></label>
  <label>세 손가락 끌기 (끄면 세 손가락 쓸기=화면 전환) <input id="s3d" type="checkbox"></label>
  <label>두 손가락 좌우 쓸기: 뒤로/앞으로 <input id="sPage" type="checkbox"></label>
@@ -110,14 +111,19 @@ function sv(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function rm(k){try{localStorage.removeItem(k)}catch(e){}}
 
 /* ---- settings ---- */
-var cfg={sens:1.5,scroll:1.5,rev:false,tap:true,drag3:true,page:true,vib:true,wake:false};
+var cfg={sens:1.5,scroll:1.5,tap:true,drag3:true,page:true,vib:true,wake:false};
 try{var o=JSON.parse(ld('ph.cfg','{}'));for(var k in cfg){if(typeof o[k]===typeof cfg[k])cfg[k]=o[k]}}catch(e){}
 function saveCfg(){sv('ph.cfg',JSON.stringify(cfg))}
+// scroll direction follows the PC (macOS natural scrolling) until the user flips it here
+var revPref=ld('ph.rev','');
+if(!revPref&&o&&o.rev===true){revPref='1';sv('ph.rev','1')}   // keep the old page's ph.cfg.rev choice
+function rev(){return revPref?revPref==='1':!!(hello&&hello.natural===false)}
 function buzz(ms){if(cfg.vib&&navigator.vibrate){try{navigator.vibrate(ms)}catch(e){}}}
 
 /* ---- connection ---- */
 var VER='__PAGE_VER__';   // filled in by the server; a different hello.ver means this tab shows an old page
-var ws=null,authed=false,pin=ld('ph.pin',''),tries=0,rt=0,pingT=0,stopRetry=false,hello=null;
+var ws=null,authed=false,pin=ld('ph.pin',''),tries=0,rt=0,pingT=0,pongT=0,stopRetry=false,hello=null;
+var scrOs='';   // OS of the screen under the cursor, sent by the server ('' = unknown: use hello.os)
 function send(o){if(ws&&authed&&ws.readyState===1)ws.send(JSON.stringify(o))}
 function setStatus(c,t){$('dot').className=c;$('st').textContent=t}
 function toast(m){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display='none'},3000)}
@@ -135,7 +141,7 @@ function connect(){
   s.onmessage=function(ev){if(ws===s)onMsg(ev.data)};
   s.onclose=function(){
     if(ws!==s)return;
-    ws=null;authed=false;hello=null;clearInterval(pingT);resetLocal();$('warn').style.display='none';
+    ws=null;authed=false;hello=null;scrOs='';clearInterval(pingT);clearTimeout(pongT);resetLocal();$('warn').style.display='none';
     if(stopRetry){setStatus('','연결 안 됨');return}
     setStatus('wait','연결 끊김 - 다시 연결 중...');retry();
   };
@@ -149,7 +155,8 @@ function onMsg(data){
     if(m.ok===true){
       if(m.ver&&VER.charAt(0)!=='_'&&m.ver!==VER){location.reload();return}
       authed=true;hello=m;tries=0;sv('ph.pin',pin);$('pin').className='';
-      setLabels(m.os);showInfo();
+      scrOs=typeof m.scr==='string'?m.scr:'';
+      setLabels(tos());showInfo();$('sRev').checked=rev();
       clearInterval(pingT);pingT=setInterval(function(){send({t:'ping'})},15000);
       wake();
     }else{
@@ -159,6 +166,18 @@ function onMsg(data){
       showPin(msg);
     }
   }else if(m.t==='warn'&&typeof m.m==='string'){toast(m.m)}
+  else if(m.t==='scr'&&typeof m.os==='string'){scrOs=m.os;setLabels(tos())}
+  else if(m.t==='pong'){clearTimeout(pongT)}
+}
+// iOS can keep a dead socket "open" after the phone was locked: ping, and reconnect if it stays silent
+function checkAlive(){
+  if(!ws||!authed)return;
+  clearTimeout(pongT);send({t:'ping'});
+  pongT=setTimeout(function(){
+    var s=ws;ws=null;authed=false;hello=null;scrOs='';clearInterval(pingT);resetLocal();
+    try{s.close()}catch(e){}
+    tries=0;connect();
+  },1500);
 }
 function showInfo(){
   var os=hello.os==='mac'?'Mac':hello.os==='win'?'Windows':'기타';
@@ -183,26 +202,100 @@ function combo(mods,k){
   p.slice().reverse().forEach(function(m){send({t:'key',k:m,d:0})});
   releaseMods();
 }
-// local state is reset whenever the server drops everything (rel / socket close)
+// local state is reset whenever the server drops everything (rel / socket close); the server
+// releases the buttons itself, so pending timers and unsent deltas are just dropped here
 function resetLocal(){
-  moStop();MODS.forEach(function(k){modOn[k]=false});dragLock=false;held={};
+  mo=null;scOn=false;remX=remY=sX=sY=0;
+  clearTimeout(tapUpT);clearTimeout(d3T);tapUpT=d3T=0;
+  MODS.forEach(function(k){modOn[k]=false});dragLock=false;held={};
   for(var i=0;i<mbs.length;i++)mbs[i].classList.remove('on');
-  if(typeof endG==='function')endG(true);
+  endG(true);
   refreshMods();
 }
 function release(){send({t:'rel'});resetLocal()}
 
 /* ---- touchpad ---- */
-var pad=$('pad'),g={mode:'idle'},mvX=0,mvY=0,scX=0,scY=0,remX=0,remY=0,sRX=0,sRY=0;
+var pad=$('pad'),g={mode:'idle'};
+var remX=0,remY=0;          // pointer px not sent yet (sub-pixel remainder included)
+var sX=0,sY=0,scOn=false;   // scroll px not sent yet; scOn = a scroll phase was begun
+var mo=null,raf=0,tapUpT=0,d3T=0,pv=0,pt=0;
+var NOTCH=50;               // px per wheel notch, as kPhonePxPerNotch in PhoneInputMarker.h
 function cen(ts){var x=0,y=0;for(var i=0;i<ts.length;i++){x+=ts[i].clientX;y+=ts[i].clientY}return{x:x/ts.length,y:y/ts.length}}
-function clamp(v){return v>50?50:v<-50?-50:v}
 function fdist(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
-// pinch = Ctrl+wheel (what browsers/apps treat as zoom). Ctrl is held only while pinching.
+function spread(ts){var c=cen(ts),s=0;for(var i=0;i<ts.length;i++)s+=Math.hypot(ts[i].clientX-c.x,ts[i].clientY-c.y);return s/ts.length}
+function dir4(x,y){return Math.abs(x)>Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down')}
+function r2(v){return Math.round(v*100)/100}
+function tos(){return scrOs||(hello&&hello.os)||''}
+
+// at most one move/scroll message per frame; on a congested link keep adding up instead of
+// queueing moves that would replay late
+function kick(){if(!raf)raf=requestAnimationFrame(function(){raf=0;flush(false)})}
+function flush(force){
+  if(!force&&ws&&ws.bufferedAmount>2048){kick();return}
+  var ix=Math.trunc(remX),iy=Math.trunc(remY);
+  if(ix||iy){remX-=ix;remY-=iy;send({t:'mv',dx:ix,dy:iy})}
+  var x=r2(sX),y=r2(sY);
+  if(x||y){
+    sX-=x;sY-=y;
+    if(mo){send({t:'sc',dx:x,dy:y,ph:0,mo:mo.sent?2:1});mo.sent=true}
+    else{send({t:'sc',dx:x,dy:y,ph:scOn?2:1,mo:0});scOn=true}
+  }
+}
+// macOS-like acceleration from the finger speed (CSS px/ms, smoothed): about 0.45x of the speed
+// setting for slow, precise moves, rising to about 3.4x for fast flicks
+function accel(dx,dy,t){
+  var dt=Math.max(t-pt,4);pt=t;
+  pv=0.5*pv+0.5*Math.hypot(dx,dy)/dt;
+  var p=Math.pow(pv,1.4);
+  return cfg.sens*(0.45+3*p/(1+p));
+}
+function pointer(dx,dy,t){var k=accel(dx,dy,t);remX+=dx*k;remY+=dy*k;kick()}
+// finger px -> scroll px; natural direction: the content follows the finger (finger down = wheel up)
+function scroll(fx,fy){var s=cfg.scroll*(rev()?-1:1);sX-=fx*s;sY+=fy*s;kick()}
+function scrollEnd(){flush(true);if(scOn){send({t:'sc',dx:0,dy:0,ph:4,mo:0});scOn=false}}
+
+// momentum after a two-finger flick, with macOS's deceleration (about 0.998 per ms); any touch stops it
+function moStart(vx,vy){
+  if(Math.hypot(vx,vy)<0.25)return;
+  mo={vx:vx,vy:vy,t:performance.now(),sent:false};
+  requestAnimationFrame(moStep);
+}
+function moStep(now){
+  if(!mo)return;
+  var dt=Math.max(0,Math.min(now-mo.t,50));mo.t=now;
+  scroll(mo.vx*dt,mo.vy*dt);
+  var k=Math.pow(0.998,dt);mo.vx*=k;mo.vy*=k;
+  if(Math.hypot(mo.vx,mo.vy)<0.02){moStop();return}
+  requestAnimationFrame(moStep);
+}
+function moStop(){
+  if(!mo)return;
+  flush(true);
+  var sent=mo.sent;mo=null;
+  if(sent)send({t:'sc',dx:0,dy:0,ph:0,mo:3});
+}
+
+// pinch: macOS apps zoom with Cmd+=/Cmd+-, Windows apps with Ctrl+wheel (fingers apart = zoom in)
+function zoom(dd){
+  g.zacc+=dd;
+  if(tos()==='mac'){
+    if(Math.abs(g.zacc)>=40){var sg=g.zacc>0?1:-1;g.zacc-=40*sg;combo(['Meta'],sg>0?'=':'-')}
+    return;
+  }
+  if(Math.abs(g.zacc)>=4.5){   // quarter-notch steps at the old rate of one notch per 18 px
+    if(!g.zoomCtrl&&!modOn.Ctrl){send({t:'key',k:'Ctrl',d:1});g.zoomCtrl=true}
+    send({t:'sc',dx:0,dy:r2(g.zacc*NOTCH/18),ph:0,mo:0});g.zacc=0;
+  }
+}
 function zoomEnd(){if(g.zoomCtrl){send({t:'key',k:'Ctrl',d:0});g.zoomCtrl=false}}
-// Mac trackpad gestures -> keys, chosen by the OS of the PC the phone controls
+
+// Mac trackpad gestures -> keys for the OS of the screen under the cursor
 var GL={up:'위로 쓸기',down:'아래로 쓸기',left:'왼쪽으로 쓸기',right:'오른쪽으로 쓸기',pinchin:'오므리기',pinchout:'펼치기',back:'뒤로',fwd:'앞으로',lookup:'사전 찾기'};
 function gesture(name){
-  var mac=hello&&hello.os==='mac';
+  var mac=tos()==='mac';
+  if(name==='pinchin'&&mac&&hello&&hello.os==='mac'){   // this Mac itself: Launchpad has no default key
+    send({t:'act',a:'launchpad'});buzz(15);toast(GL[name]);return;
+  }
   var G={up:mac?[['Ctrl'],'Up']:[['Meta'],'Tab'],down:mac?[['Ctrl'],'Down']:[['Meta'],'d'],
          left:mac?[['Ctrl'],'Right']:[['Ctrl','Meta'],'Right'],right:mac?[['Ctrl'],'Left']:[['Ctrl','Meta'],'Left'],
          pinchin:mac?[[],'F4']:[[],'Meta'],pinchout:mac?[[],'F11']:[['Meta'],'d'],
@@ -211,81 +304,78 @@ function gesture(name){
   if(!G)return;
   combo(G[0],G[1]);buzz(15);toast(GL[name]);
 }
-function dir4(x,y){return Math.abs(x)>Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down')}
-function spread(ts){var c=cen(ts),s=0;for(var i=0;i<ts.length;i++)s+=Math.hypot(ts[i].clientX-c.x,ts[i].clientY-c.y);return s/ts.length}
-function flush(){
-  if(mvX||mvY){
-    var m=Math.sqrt(mvX*mvX+mvY*mvY),k=cfg.sens*(1+Math.min(m,30)*0.05);   // acceleration: up to 2.5x on fast swipes
-    remX+=mvX*k;remY+=mvY*k;mvX=mvY=0;
-    var ix=Math.trunc(remX),iy=Math.trunc(remY);remX-=ix;remY-=iy;
-    if(ix||iy)send({t:'mv',dx:ix,dy:iy});
-  }
-  if(scX||scY){
-    var f=cfg.scroll/24*(cfg.rev?-1:1);   // natural: finger down -> content down (wheel up, dy>0); finger right -> dx<0
-    sRY+=scY*f;sRX-=scX*f;scX=scY=0;
-    var jx=clamp(Math.trunc(sRX)),jy=clamp(Math.trunc(sRY));sRX-=Math.trunc(sRX);sRY-=Math.trunc(sRY);
-    if(jx||jy)send({t:'sc',dx:jx,dy:jy});
-  }
-}
-setInterval(flush,16);
-// Mac-like momentum: after a two-finger flick the scroll keeps gliding and decays (px/ms); any touch stops it
-var mo=null;
-function moStop(){mo=null}
-function moStart(vx,vy){
-  if(Math.hypot(vx,vy)<0.25)return;
-  mo={vx:vx,vy:vy,t:performance.now()};
-  requestAnimationFrame(moStep);
-}
-function moStep(now){
-  if(!mo)return;
-  var dt=Math.min(now-mo.t,50);mo.t=now;
-  scX+=mo.vx*dt;scY+=mo.vy*dt;
-  var k=Math.pow(0.94,dt/16);mo.vx*=k;mo.vy*=k;
-  if(Math.hypot(mo.vx,mo.vy)<0.03){mo=null;return}
-  requestAnimationFrame(moStep);
+
+// three-finger drag: like macOS, the button stays down briefly after the lift so the fingers can re-grip
+function d3Lift(){if(g.drag3){flush(true);g.drag3=false;clearTimeout(d3T);d3T=setTimeout(function(){d3T=0;btn(0,0)},500)}}
+function d3Done(){if(d3T){clearTimeout(d3T);d3T=0;btn(0,0)}}
+
+function one(tch,t,noTap){pt=t;pv=0;return{mode:'one',id:tch.identifier,x:tch.clientX,y:tch.clientY,t0:t,dist:0,hx:0,hy:0,drag:false,noTap:noTap,settle:0}}
+function two(ts,t,noTap){var c=cen(ts);pt=t;pv=0;return{mode:'two',x:c.x,y:c.y,t0:t,dist:0,n:ts.length,d:null,pinch:0,pan:0,sx:0,sy:0,
+  kind:'',rail:'',fired:false,zacc:0,vx:0,vy:0,lt:t,bx:0,by:0,drag3:false,noTap:noTap,settle:0}}
+// fingers left on the pad after a gesture carry on (as on a Mac) once they settle, without tapping
+function follow(ts,t){
+  if(ts.length===0){endG(true);return}
+  g=ts.length===1?one(ts[0],t,true):two(ts,t,true);
+  g.settle=t+120;
 }
 function endG(cancel){
-  clearTimeout(g.timer);zoomEnd();
-  if(g.mode==='one'&&g.drag&&cancel!==true)btn(0,0);
-  if(g.mode==='two'&&g.drag3&&cancel!==true)btn(0,0);
-  flush();remX=remY=sRX=sRY=mvX=mvY=scX=scY=0;g={mode:'idle'};
+  zoomEnd();
+  if(cancel!==true){   // touchcancel: let go of everything now
+    if(g.mode==='one'&&g.drag)btn(0,0);
+    if(g.drag3)btn(0,0);
+    d3Done();
+  }
+  flush(true);scrollEnd();g={mode:'idle'};
 }
+// a 2-finger move that may still become a quick back/forward swipe is not scrolled yet
+function maybeFlick(t){return cfg.page&&g.n===2&&t-g.t0<400&&Math.abs(g.sx)>3*Math.abs(g.sy)}
+
 pad.addEventListener('touchstart',function(e){
   e.preventDefault();
-  var n=e.targetTouches.length,c;
+  var ts=e.targetTouches,n=ts.length,t=e.timeStamp,stopped=!!mo;
   moStop();
-  if(n===1&&g.mode==='idle'){
-    var t=e.targetTouches[0];
-    g={mode:'one',id:t.identifier,x:t.clientX,y:t.clientY,t0:Date.now(),dist:0,drag:false};
-    g.timer=setTimeout(function(){
-      if(g.mode==='one'&&g.dist<10&&!dragLock){g.drag=true;btn(0,1);buzz(15)}   // long press = hold left button
-    },350);
-  }else if(n>=2){
-    if(g.mode==='one'&&g.drag)return;
-    if(g.mode==='ignore')return;
-    c=cen(e.targetTouches);
-    if(g.mode==='two'){g.x=c.x;g.y=c.y;g.d=null;if(n>g.n){g.n=n;g.sx=g.sy=0;g.sp0=null;g.fired=false}}
-    else{clearTimeout(g.timer);g={mode:'two',x:c.x,y:c.y,t0:Date.now(),dist:0,n:n,d:null,pinch:0,pan:0,sx:0,sy:0,kind:'',fired:false,zacc:0,vx:0,vy:0,lt:performance.now()}}
+  if(tapUpT){   // a finger back down right after a tap: tap-and-drag (the button is still down)
+    clearTimeout(tapUpT);tapUpT=0;
+    if(n===1&&g.mode==='idle'){g=one(ts[0],t,stopped);g.drag=true;return}
+    btn(0,0);
   }
+  if(n===1&&g.mode==='idle'){g=one(ts[0],t,stopped);return}   // touching to stop momentum is not a tap
+  if(n<2)return;
+  if(g.mode==='one'&&g.drag){
+    if(g.dist>=4)return;   // dragging: extra fingers are ignored
+    btn(0,0);              // the tap-and-drag never moved: that was a click, now a 2-finger gesture
+  }
+  if(g.mode==='two'){
+    var c=cen(ts);g.x=c.x;g.y=c.y;g.d=null;
+    if(n>g.n){scrollEnd();zoomEnd();g.n=n;g.sx=g.sy=0;g.sp0=null;g.fired=false;g.kind='';g.bx=g.by=0}
+  }else g=two(ts,t,stopped);
 },{passive:false});
 pad.addEventListener('touchmove',function(e){
   e.preventDefault();
-  var dx,dy;
+  var dx,dy,t=e.timeStamp;
   if(g.mode==='one'){
-    var t=null;
-    for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===g.id)t=e.changedTouches[i];
-    if(!t)return;
-    dx=t.clientX-g.x;dy=t.clientY-g.y;g.x=t.clientX;g.y=t.clientY;
-    g.dist+=Math.abs(dx)+Math.abs(dy);mvX+=dx;mvY+=dy;
+    var tch=null;
+    for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===g.id)tch=e.changedTouches[i];
+    if(!tch)return;
+    dx=tch.clientX-g.x;dy=tch.clientY-g.y;g.x=tch.clientX;g.y=tch.clientY;
+    if(t<g.settle){pt=t;return}   // fingers just lifted or landed: their wobble is not a move
+    g.dist+=Math.abs(dx)+Math.abs(dy);
+    var k=accel(dx,dy,t);g.hx+=dx*k;g.hy+=dy*k;
+    // a tap's jitter is not sent: the cursor starts once the finger clearly moves or stays down
+    if(g.dist>=4||t-g.t0>=80){remX+=g.hx;remY+=g.hy;g.hx=g.hy=0;kick()}
   }else if(g.mode==='two'&&e.targetTouches.length>=2){
     var ts=e.targetTouches,c=cen(ts);
     dx=c.x-g.x;dy=c.y-g.y;g.x=c.x;g.y=c.y;
+    if(t<g.settle){g.d=null;g.lt=pt=t;return}
     g.dist+=Math.abs(dx)+Math.abs(dy);g.sx+=dx;g.sy+=dy;
     if(g.n>=3){
       if(ts.length<g.n)return;   // a finger is already lifting
-      if(g.n===3&&cfg.drag3){    // three-finger drag
-        if(!g.drag3&&g.dist>=8){g.drag3=true;btn(0,1);buzz(15)}
-        if(g.drag3){mvX+=dx;mvY+=dy}
+      if(g.n===3&&cfg.drag3){
+        if(!g.drag3&&(g.dist>=8||d3T)){
+          if(d3T){clearTimeout(d3T);d3T=0}else{btn(0,1);buzz(15)}   // re-gripped in time: same drag
+          g.drag3=true;
+        }
+        if(g.drag3)pointer(dx,dy,t);
         return;
       }
       var sp=spread(ts);if(g.sp0==null)g.sp0=sp;
@@ -300,56 +390,61 @@ pad.addEventListener('touchmove',function(e){
     g.pinch+=dd;g.pan+=Math.abs(dx)+Math.abs(dy);
     // decide once: fingers moving apart/together beats the centre moving -> zoom, otherwise scroll
     if(!g.kind){
-      if(Math.abs(g.pinch)>=20&&Math.abs(g.pinch)>g.pan){g.kind='zoom';toast('확대/축소 (Ctrl+휠)')}
-      else if(g.pan>=40&&g.pan>2*Math.abs(g.pinch))g.kind='scroll';
-    }
-    if(g.kind==='zoom'){
-      g.zacc+=dd;
-      var z=Math.trunc(g.zacc/18);
-      if(z){
-        g.zacc-=z*18;
-        if(!g.zoomCtrl&&!modOn.Ctrl){send({t:'key',k:'Ctrl',d:1});g.zoomCtrl=true}
-        send({t:'sc',dx:0,dy:z});   // fingers apart -> wheel up -> zoom in
+      if(Math.abs(g.pinch)>=20&&Math.abs(g.pinch)>g.pan){g.kind='zoom';d3Done();toast('확대/축소')}
+      else if(g.pan>=16&&g.pan>2*Math.abs(g.pinch)){
+        g.kind='scroll';d3Done();
+        // macOS scroll rails: a clearly vertical or horizontal start stays on that axis
+        g.rail=Math.abs(g.sy)>2*Math.abs(g.sx)?'y':Math.abs(g.sx)>2*Math.abs(g.sy)?'x':'';
       }
-    }else{
-      scX+=dx;scY+=dy;
-      var now=performance.now(),dt=now-g.lt;g.lt=now;
-      if(dt>0){g.vx=0.6*g.vx+0.4*dx/dt;g.vy=0.6*g.vy+0.4*dy/dt}
     }
+    if(g.kind==='zoom'){zoom(dd);return}
+    if(g.rail==='y')dx=0;else if(g.rail==='x')dy=0;
+    // held back while undecided (a pinch must not scroll first) or while it may be a back/forward flick
+    g.bx+=dx;g.by+=dy;
+    if(g.rail==='y')g.bx=0;else if(g.rail==='x')g.by=0;
+    if(g.kind==='scroll'&&!maybeFlick(t)){scroll(g.bx,g.by);g.bx=g.by=0}
+    var dt=Math.max(t-g.lt,4);g.lt=t;
+    g.vx=0.6*g.vx+0.4*dx/dt;g.vy=0.6*g.vy+0.4*dy/dt;
   }
 },{passive:false});
 function tEnd(e){
   e.preventDefault();
-  var rem=e.targetTouches.length,cancel=e.type==='touchcancel';
-  if(cancel){endG();return}
+  var ts=e.targetTouches,t=e.timeStamp;
+  if(e.type==='touchcancel'){endG();return}
   if(g.mode==='one'){
     var gone=false;
     for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===g.id)gone=true;
-    if(gone){
-      clearTimeout(g.timer);flush();
-      if(g.drag)btn(0,0);
-      else if(cfg.tap&&!dragLock&&g.dist<10&&Date.now()-g.t0<300){click(0);buzz(10)}
-      g={mode:'ignore'};
+    if(!gone)return;
+    flush(true);
+    var tap=cfg.tap&&!dragLock&&!g.noTap&&g.dist<10&&t-g.t0<300;
+    if(g.drag){btn(0,0);if(tap)click(0)}   // tap, tap = double click; tap, hold and move = drag
+    else if(tap){
+      d3Done();btn(0,1);buzz(10);
+      // macOS tap-to-drag: the button stays down briefly; a finger back down by then drags
+      tapUpT=setTimeout(function(){tapUpT=0;btn(0,0)},180);
     }
+    follow(ts,t);
   }else if(g.mode==='two'){
-    if(rem>=2){
-      var c=cen(e.targetTouches);g.x=c.x;g.y=c.y;g.d=null;
-      if(g.drag3){flush();btn(0,0);g.drag3=false}
+    if(ts.length>=2){
+      if(ts.length===2&&g.n>=3){d3Lift();g=two(ts,t,true);g.settle=t+120}   // down to 2 fingers: a new gesture
+      else{var c=cen(ts);g.x=c.x;g.y=c.y;g.d=null}
+      return;
     }
-    else{
-      zoomEnd();
-      if(g.drag3){flush();btn(0,0);g.drag3=false}
-      var quick=g.dist<10&&Date.now()-g.t0<350;
-      if(g.n===2&&g.kind!=='zoom'&&cfg.page&&Date.now()-g.t0<400&&Math.abs(g.sx)>110&&Math.abs(g.sy)<Math.abs(g.sx)/3)gesture(g.sx>0?'back':'fwd');
-      else if(g.n<3&&g.kind!=='zoom'&&performance.now()-g.lt<80)moStart(g.vx,g.vy);
-      if(cfg.tap&&quick){
-        if(g.n<3){click(1);buzz(10)}
-        else if(g.n===3)gesture('lookup');
-      }
-      g={mode:'ignore'};
+    zoomEnd();
+    // a pinch barely moves the centre, so a tap also needs the finger distance unchanged
+    var dur=t-g.t0,quick=cfg.tap&&!g.noTap&&!g.drag3&&!g.kind&&g.dist<10&&Math.abs(g.pinch)<10&&dur<350;
+    d3Lift();
+    var flick=g.n===2&&g.kind!=='zoom'&&cfg.page&&dur<400&&Math.abs(g.sx)>110&&Math.abs(g.sy)<Math.abs(g.sx)/3;
+    if(flick)gesture(g.sx>0?'back':'fwd');
+    else if(g.kind==='scroll')scroll(g.bx,g.by);
+    scrollEnd();
+    if(!flick&&g.kind==='scroll'&&t-g.lt<80&&!ts.length)moStart(g.vx,g.vy);   // a finger left down holds the content
+    if(quick){
+      if(g.n===2){d3Done();click(1);buzz(10)}
+      else if(g.n===3)gesture('lookup');
     }
+    follow(ts,t);
   }
-  if(rem===0)endG(true);
 }
 pad.addEventListener('touchend',tEnd,{passive:false});
 pad.addEventListener('touchcancel',tEnd,{passive:false});
@@ -418,7 +513,9 @@ function bind(id,key){
     if(key==='wake')wake();
   });
 }
-bind('sSens','sens');bind('sScr','scroll');bind('sRev','rev');bind('sTap','tap');bind('s3d','drag3');bind('sPage','page');bind('sVib','vib');bind('sWake','wake');
+bind('sSens','sens');bind('sScr','scroll');bind('sTap','tap');
+$('sRev').checked=rev();
+$('sRev').addEventListener('change',function(){revPref=$('sRev').checked?'1':'0';sv('ph.rev',revPref)});bind('s3d','drag3');bind('sPage','page');bind('sVib','vib');bind('sWake','wake');
 $('gear').addEventListener('click',function(){sh.className='open'});
 $('sclose').addEventListener('click',function(){sh.className=''});
 sh.addEventListener('click',function(e){if(e.target===sh)sh.className=''});
@@ -449,7 +546,7 @@ function wake(){
 window.addEventListener('pagehide',release);
 document.addEventListener('visibilitychange',function(){
   if(document.hidden)release();
-  else{wake();if(!ws&&pin&&!stopRetry){tries=0;connect()}}
+  else{wake();if(ws)checkAlive();else if(pin&&!stopRetry){tries=0;connect()}}
 });
 // keep the layout above the soft keyboard (iOS does not resize the layout viewport)
 var vv=window.visualViewport;

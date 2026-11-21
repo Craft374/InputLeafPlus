@@ -153,8 +153,8 @@ private:
     // map mac scroll wheel value to a InputLeap scroll wheel value
     std::int32_t map_scroll_wheel_from_osx(float) const;
 
-    // map InputLeap scroll wheel value to a mac scroll wheel value
-    std::int32_t map_scroll_wheel_to_osx(float) const;
+    // map InputLeap scroll wheel value to a mac scroll wheel value (lines, fractional)
+    double map_scroll_wheel_to_osx(float) const;
 
     // get the current scroll wheel speed
     double getScrollSpeed() const;
@@ -276,6 +276,9 @@ private:
     // a warp that hasn't shown up in event positions yet, 0 = none (see onMouseMove)
     CGFloat m_xLast = 0, m_yLast = 0;
     std::uint32_t m_warpPendingEvents = 0;
+    // sub-line wheel left over by fakeMouseWheel, and sub-notch phone scroll left over by the tap
+    mutable double m_wheelLinesX = 0, m_wheelLinesY = 0;
+    double m_phoneWheelX = 0, m_phoneWheelY = 0;
 
     /* FIXME: this data structure is explicitly marked mutable due
        to a need to track the state of buttons since the remote

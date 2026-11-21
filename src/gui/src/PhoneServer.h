@@ -15,6 +15,7 @@
 #include <QHash>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -41,6 +42,10 @@ public:
     // Called when a client authenticates; its keys ("name", "role", extras) are merged into hello.
     void setInfoProvider(std::function<QJsonObject()> provider);
     static QStringList localUrls(quint16 port);             // "http://192.168.0.5:24803/" per non-loopback up IPv4 interface
+    // The screen the cursor is on: this machine (remote = false) or a client, for which
+    // modifierKeys says which local modifier key reaches each modifier there (see
+    // phone::localModifierKeys). The page is told the screen's OS for its gesture keys.
+    void setActiveScreen(bool remote, const QMap<phone::Key, phone::Key>& modifierKeys);
 
 Q_SIGNALS:
     void clientCountChanged(int count);
@@ -68,6 +73,9 @@ private:
     void handleInput(QTcpSocket* s, const QString& type, const QJsonObject& msg);
     void typeText(QTcpSocket* s, const QString& text);
     void pressKey(phone::Key key, bool down);
+    void releaseInput();                                    // buttons, keys, open scroll phases
+    bool comboBroken() const;
+    QString activeOs() const;
     static QByteArray pageVersion();
     void respond(QTcpSocket* s, int code, const QByteArray& contentType, const QByteArray& body);
     void sendJson(QTcpSocket* s, const QJsonObject& obj);
@@ -85,4 +93,7 @@ private:
     QString error_;
     int authedCount_ = 0;
     bool shiftHeld_ = false;
+    bool remote_ = false;
+    QMap<phone::Key, phone::Key> modifierKeys_;
+    QMap<phone::Key, phone::Key> heldAs_;   // modifier the page pressed -> local key actually pressed
 };

@@ -11,7 +11,10 @@
 
 #include <QCryptographicHash>
 
+#include <QJsonValue>
+
 #include <algorithm>
+#include <cmath>
 
 namespace phone {
 
@@ -178,6 +181,44 @@ bool constantTimeEquals(const QByteArray& a, const QByteArray& b)
         diff |= (i < a.size() ? uchar(a[i]) : 0) ^ (i < b.size() ? uchar(b[i]) : 0);
     }
     return diff == 0;
+}
+
+bool jsonNumber(const QJsonObject& msg, const char* key, double* out)
+{
+    const QJsonValue v = msg.value(QLatin1String(key));
+    if (!v.isDouble() || !std::isfinite(v.toDouble())) {
+        return false;
+    }
+    *out = v.toDouble();
+    return true;
+}
+
+bool jsonExactInt(const QJsonObject& msg, const char* key, int lo, int hi, int* out)
+{
+    double v = 0;
+    if (!jsonNumber(msg, key, &v) || v != std::floor(v) || v < lo || v > hi) {
+        return false;
+    }
+    *out = int(v);
+    return true;
+}
+
+bool parseScroll(const QJsonObject& msg, ScrollMessage* out)
+{
+    ScrollMessage m;
+    if (!jsonNumber(msg, "dx", &m.dx) || !jsonNumber(msg, "dy", &m.dy)) {
+        return false;
+    }
+    m.dx = std::clamp(m.dx, -kMaxScrollPx, kMaxScrollPx);
+    m.dy = std::clamp(m.dy, -kMaxScrollPx, kMaxScrollPx);
+    const bool hasPhase = msg.contains(QLatin1String("ph"));
+    const bool hasMomentum = msg.contains(QLatin1String("mo"));
+    if ((hasPhase && (!jsonExactInt(msg, "ph", 0, 4, &m.phase) || m.phase == 3))
+        || (hasMomentum && !jsonExactInt(msg, "mo", 0, 3, &m.momentum))) {
+        return false;
+    }
+    *out = m;
+    return true;
 }
 
 } // namespace phone

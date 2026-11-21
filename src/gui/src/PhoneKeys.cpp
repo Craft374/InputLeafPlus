@@ -96,6 +96,28 @@ bool isModifier(Key key)
     return key == Key::Ctrl || key == Key::Alt || key == Key::Shift || key == Key::Meta;
 }
 
+QMap<Key, Key> localModifierKeys(const std::function<BaseConfig::Modifier(BaseConfig::Modifier)>& screenMap)
+{
+    using Mod = BaseConfig::Modifier;
+    // Meta is the Windows key / Command, which the InputLeap servers send as Super
+    static const std::pair<Key, Mod> kMods[] = {
+        {Key::Shift, Mod::Shift}, {Key::Ctrl, Mod::Ctrl}, {Key::Alt, Mod::Alt}, {Key::Meta, Mod::Super}};
+    QMap<Key, Key> keys;
+    for (const auto& wanted : kMods) {
+        if (screenMap(wanted.second) == wanted.second) {
+            keys[wanted.first] = wanted.first;      // arrives unchanged: prefer the key itself
+            continue;
+        }
+        for (const auto& local : kMods) {
+            if (screenMap(local.second) == wanted.second) {
+                keys[wanted.first] = local.first;
+                break;
+            }
+        }
+    }
+    return keys;
+}
+
 QString keyName(Key key)
 {
     const int k = idx(key);

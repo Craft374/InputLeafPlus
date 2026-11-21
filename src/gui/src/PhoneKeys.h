@@ -9,8 +9,13 @@
 
 #pragma once
 
+#include "BaseConfig.h"
+
+#include <QMap>
 #include <QString>
 #include <QVector>
+
+#include <functional>
 
 namespace phone {
 
@@ -34,6 +39,11 @@ struct KeyStroke {
 };
 
 bool isModifier(Key key);                           // Ctrl, Alt, Shift, Meta
+
+// InputLeap remaps modifiers per destination screen: screenMap(m) is what a server modifier m
+// becomes there (Screen::modifier). Inverts it: for each modifier the page wants that screen to
+// receive, the local modifier key to press. A modifier no local key reaches is left out.
+QMap<Key, Key> localModifierKeys(const std::function<BaseConfig::Modifier(BaseConfig::Modifier)>& screenMap);
 // Wire names: "a".."z", "0".."9", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/", "`",
 // "Space", "Enter", "Tab", "Backspace", "Delete", "Escape", "Up", "Down", "Left", "Right",
 // "Home", "End", "PageUp", "PageDown", "F1".."F12", "Ctrl", "Alt", "Shift", "Meta", "HangulToggle".

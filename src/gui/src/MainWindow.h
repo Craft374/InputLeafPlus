@@ -163,6 +163,7 @@ public slots:
         void proofreadInfo();
         void windowStateChanged();
         void updatePhoneServer();
+        void updatePhoneScreen(const QString& activeScreen);   // screen name from the server log
         void updatePeerLink();
         void beginSwap();
         void requestSwapTo(const QStringList& hosts, int index, const peerlink::SwapRequest& request, bool iAmServer);

@@ -174,3 +174,52 @@ TEST(PhoneKeys, modifiers)
     EXPECT_FALSE(phone::isModifier(phone::Key::None));
     EXPECT_FALSE(phone::isModifier(phone::Key::HangulToggle));
 }
+
+namespace {
+
+using Mod = BaseConfig::Modifier;
+using phone::Key;
+
+// screen mapping from {from, to} pairs; anything not listed arrives unchanged
+std::function<Mod(Mod)> mapping(std::initializer_list<std::pair<Mod, Mod>> pairs)
+{
+    const std::vector<std::pair<Mod, Mod>> table(pairs);
+    return [table](Mod m) {
+        for (const auto& p : table)
+            if (p.first == m)
+                return p.second;
+        return m;
+    };
+}
+
+} // namespace
+
+TEST(PhoneKeys, localModifierKeys_identity)
+{
+    const QMap<Key, Key> keys = phone::localModifierKeys(mapping({}));
+    EXPECT_EQ(keys.size(), 4);
+    for (Key k : {Key::Shift, Key::Ctrl, Key::Alt, Key::Meta})
+        EXPECT_EQ(keys.value(k), k);
+}
+
+TEST(PhoneKeys, localModifierKeys_swapped)
+{
+    // Mac server, Windows screen with "super = alt, alt = super" (Command acts as Alt there)
+    const QMap<Key, Key> keys = phone::localModifierKeys(mapping({{Mod::Super, Mod::Alt}, {Mod::Alt, Mod::Super}}));
+    EXPECT_EQ(keys.value(Key::Alt), Key::Meta);    // Windows Alt <- press Command
+    EXPECT_EQ(keys.value(Key::Meta), Key::Alt);    // Windows key <- press Option
+    EXPECT_EQ(keys.value(Key::Ctrl), Key::Ctrl);
+    EXPECT_EQ(keys.value(Key::Shift), Key::Shift);
+}
+
+TEST(PhoneKeys, localModifierKeys_notInjective)
+{
+    // "super = ctrl" only: Ctrl is reached by both, nothing reaches the Windows key any more
+    const QMap<Key, Key> keys = phone::localModifierKeys(mapping({{Mod::Super, Mod::Ctrl}}));
+    EXPECT_EQ(keys.value(Key::Ctrl), Key::Ctrl);   // the key itself wins a tie
+    EXPECT_FALSE(keys.contains(Key::Meta));
+    // "alt = none": Alt is unreachable, and None never counts as a target
+    const QMap<Key, Key> none = phone::localModifierKeys(mapping({{Mod::Alt, Mod::None}}));
+    EXPECT_FALSE(none.contains(Key::Alt));
+    EXPECT_EQ(none.value(Key::Meta), Key::Meta);
+}

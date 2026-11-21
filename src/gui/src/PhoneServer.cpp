@@ -16,6 +16,7 @@
 #include <QHostAddress>
 #include <QJsonDocument>
 #include <QNetworkInterface>
+#include <QProcess>
 #include <QTcpSocket>
 #include <QTimer>
 
@@ -32,7 +33,6 @@ constexpr int kMaxGlobalFailures = 30;      // failed auths per kFailWindowMs fr
 constexpr int kMaxFailures = 5;
 constexpr qint64 kFailWindowMs = 60000;
 constexpr int kMaxMove = 2000;
-constexpr int kMaxScroll = 50;
 constexpr int kMaxTextChars = 500;
 constexpr int kMaxFailureEntries = 256;
 
@@ -50,42 +50,20 @@ QJsonObject warning(const QString& text)
     return obj;
 }
 
-// Finite JSON number; a non-numeric or non-finite value is rejected.
-bool number(const QJsonObject& msg, const char* key, double* out)
-{
-    const QJsonValue v = msg.value(QLatin1String(key));
-    if (!v.isDouble() || !std::isfinite(v.toDouble())) {
-        return false;
-    }
-    *out = v.toDouble();
-    return true;
-}
-
 bool clampedInt(const QJsonObject& msg, const char* key, int limit, int* out)
 {
     double v = 0;
-    if (!number(msg, key, &v)) {
+    if (!phone::jsonNumber(msg, key, &v)) {
         return false;
     }
     *out = int(std::lround(qBound(double(-limit), v, double(limit))));
     return true;
 }
 
-// Exact integer in [lo, hi]; anything else is rejected (no clamping).
-bool exactInt(const QJsonObject& msg, const char* key, int lo, int hi, int* out)
-{
-    double v = 0;
-    if (!number(msg, key, &v) || v != std::floor(v) || v < lo || v > hi) {
-        return false;
-    }
-    *out = int(v);
-    return true;
-}
-
 bool flag(const QJsonObject& msg, const char* key, bool* out)
 {
     int v = 0;
-    if (!exactInt(msg, key, 0, 1, &v)) {
+    if (!phone::jsonExactInt(msg, key, 0, 1, &v)) {
         return false;
     }
     *out = v == 1;
@@ -134,8 +112,7 @@ void PhoneServer::stop()
     conns_.clear();
     failures_.clear();
     globalFail_ = Failures();
-    injector_->releaseAll();
-    shiftHeld_ = false;
+    releaseInput();
     if (authedCount_ != 0) {
         authedCount_ = 0;
         Q_EMIT clientCountChanged(0);
@@ -233,8 +210,7 @@ void PhoneServer::onDisconnected(QTcpSocket* s)
     s->deleteLater();
     if (wasAuthed) {
         --authedCount_;
-        injector_->releaseAll();
-        shiftHeld_ = false;
+        releaseInput();     // also covers the idle timeout, which aborts the socket
         Q_EMIT clientCountChanged(authedCount_);
     }
 }
@@ -402,8 +378,7 @@ void PhoneServer::handleMessage(QTcpSocket* s, const QByteArray& text)
     if (type == QLatin1String("ping")) {
         sendJson(s, message("pong"));
     } else if (type == QLatin1String("rel")) {
-        injector_->releaseAll();
-        shiftHeld_ = false;
+        releaseInput();
     } else {
         handleInput(s, type, msg);
     }
@@ -470,6 +445,8 @@ void PhoneServer::handleAuth(QTcpSocket* s, const QJsonObject& msg)
     hello["t"] = QStringLiteral("hello");
     hello["ok"] = true;
     hello["os"] = QString::fromLatin1(injector_->platformName());
+    hello["scr"] = activeOs();
+    hello["natural"] = injector_->naturalScroll();
     hello["ver"] = QString::fromLatin1(pageVersion());
     sendJson(s, hello);
 
@@ -480,10 +457,65 @@ void PhoneServer::handleAuth(QTcpSocket* s, const QJsonObject& msg)
     Q_EMIT clientCountChanged(authedCount_);
 }
 
+// A held modifier this screen cannot receive: the key or wheel it goes with would arrive bare
+// (Win+Tab as a plain Tab), so it is dropped instead.
+bool PhoneServer::comboBroken() const
+{
+    return heldAs_.values().contains(phone::Key::None);
+}
+
+void PhoneServer::releaseInput()
+{
+    injector_->releaseAll();
+    shiftHeld_ = false;
+    heldAs_.clear();
+}
+
+void PhoneServer::setActiveScreen(bool remote, const QMap<phone::Key, phone::Key>& modifierKeys)
+{
+    const QString before = activeOs();
+    remote_ = remote;
+    modifierKeys_ = modifierKeys;
+    if (activeOs() == before) {
+        return;
+    }
+    QJsonObject scr = message("scr");
+    scr["os"] = activeOs();
+    for (auto it = conns_.constBegin(); it != conns_.constEnd(); ++it) {
+        if (it->authed && !it->closing) {
+            sendJson(it.key(), scr);
+        }
+    }
+}
+
+// shortcut: a remote screen is assumed to run the other OS (this fork pairs one Mac with one
+// Windows PC); a third screen or another OS needs the client's OS sent to the GUI instead.
+QString PhoneServer::activeOs() const
+{
+    const QString local = QString::fromLatin1(injector_->platformName());
+    if (!remote_) {
+        return local;
+    }
+    return local == QLatin1String("mac") ? QStringLiteral("win")
+         : local == QLatin1String("win") ? QStringLiteral("mac") : local;
+}
+
 void PhoneServer::pressKey(phone::Key key, bool down)
 {
     if (key == phone::Key::Shift) {
         shiftHeld_ = down;
+    }
+    if (phone::isModifier(key)) {
+        // the page means the modifier of the screen under the cursor; a remote screen remaps
+        // modifiers, so press the local one that arrives there as `key` (Key::None: nothing
+        // does). The key-up goes to whatever the key-down pressed, even after a screen switch.
+        if (down) {
+            key = heldAs_[key] = remote_ ? modifierKeys_.value(key, phone::Key::None) : key;
+        } else {
+            key = heldAs_.take(key);    // Key::None if never pressed, which the injector ignores
+        }
+    } else if (comboBroken()) {
+        return;
     }
     injector_->key(key, down);
 }
@@ -524,13 +556,22 @@ void PhoneServer::handleInput(QTcpSocket* s, const QString& type, const QJsonObj
             injector_->moveRelative(a, b);
         }
     } else if (type == QLatin1String("btn")) {
-        if (exactInt(msg, "b", 0, 2, &a) && flag(msg, "d", &down)) {
+        if (phone::jsonExactInt(msg, "b", 0, 2, &a) && flag(msg, "d", &down)) {
             injector_->mouseButton(a, down);
         }
     } else if (type == QLatin1String("sc")) {
-        if (clampedInt(msg, "dx", kMaxScroll, &a) && clampedInt(msg, "dy", kMaxScroll, &b)) {
-            injector_->scroll(a, b);
+        phone::ScrollMessage sc;
+        if (phone::parseScroll(msg, &sc) && !(comboBroken() && sc.phase == 0 && sc.momentum == 0)) {
+            injector_->scroll(sc.dx, sc.dy, sc.phase, sc.momentum);
         }
+    } else if (type == QLatin1String("act")) {
+#if defined(Q_OS_MAC)
+        // Launchpad has no default key; macOS 26 renamed it to Apps
+        if (!remote_ && msg.value(QLatin1String("a")).toString() == QLatin1String("launchpad")) {
+            QProcess::startDetached(QStringLiteral("/bin/sh"),
+                                    {QStringLiteral("-c"), QStringLiteral("open -a Launchpad || open -a Apps")});
+        }
+#endif
     } else if (type == QLatin1String("key")) {
         if (phone::keyFromName(msg.value(QLatin1String("k")).toString(), &key) && flag(msg, "d", &down)) {
             pressKey(key, down);

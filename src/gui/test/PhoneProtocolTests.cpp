@@ -10,6 +10,8 @@
 #include "../src/PhoneProtocol.h"
 #include <gtest/gtest.h>
 
+#include <QJsonDocument>
+
 using namespace phone;
 
 namespace {
@@ -173,4 +175,29 @@ TEST(PhoneProtocolTests, constantTimeEquals)
     EXPECT_FALSE(constantTimeEquals("123456", "12345"));
     EXPECT_FALSE(constantTimeEquals("", "x"));
     EXPECT_TRUE(constantTimeEquals("", ""));
+}
+
+TEST(PhoneProtocolTests, parseScroll)
+{
+    const auto parse = [](const char* json, ScrollMessage* out) {
+        return parseScroll(QJsonDocument::fromJson(json).object(), out);
+    };
+    ScrollMessage m;
+    ASSERT_TRUE(parse(R"({"t":"sc","dx":-1.25,"dy":0.5,"ph":2,"mo":0})", &m));
+    EXPECT_DOUBLE_EQ(m.dx, -1.25);
+    EXPECT_DOUBLE_EQ(m.dy, 0.5);
+    EXPECT_EQ(m.phase, 2);
+    EXPECT_EQ(m.momentum, 0);
+    ASSERT_TRUE(parse(R"({"dx":0,"dy":0,"ph":0,"mo":3})", &m));
+    EXPECT_EQ(m.momentum, 3);
+    ASSERT_TRUE(parse(R"({"dx":99999,"dy":-99999})", &m));   // clamped; no phase = 0
+    EXPECT_EQ(m.dx, kMaxScrollPx);
+    EXPECT_EQ(m.dy, -kMaxScrollPx);
+    EXPECT_EQ(m.phase, 0);
+    EXPECT_FALSE(parse(R"({"dx":1})", &m));
+    EXPECT_FALSE(parse(R"({"dx":"1","dy":0})", &m));
+    EXPECT_FALSE(parse(R"({"dx":1,"dy":0,"ph":3})", &m));   // not a CGScrollPhase
+    EXPECT_FALSE(parse(R"({"dx":1,"dy":0,"ph":1.5})", &m));
+    EXPECT_FALSE(parse(R"({"dx":1,"dy":0,"mo":4})", &m));
+    EXPECT_FALSE(parse(R"({"dx":1,"dy":0,"mo":null})", &m));
 }
