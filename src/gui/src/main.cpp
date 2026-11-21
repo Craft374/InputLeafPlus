@@ -28,6 +28,9 @@
 #include <QtGui>
 #include <QSettings>
 #include <QMessageBox>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QLockFile>
 
 #if defined(Q_OS_MAC)
 #include <Carbon/Carbon.h>
@@ -35,6 +38,10 @@
 
 #ifdef Q_OS_DARWIN
 #include <cstdlib>
+#endif
+
+#ifdef Q_OS_WIN
+#include <windows.h>
 #endif
 
 class QThreadImpl : public QThread
@@ -92,6 +99,25 @@ int main(int argc, char* argv[])
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     app.setDesktopFileName(QStringLiteral("io.github.input_leap.input-leap"));
 #endif
+
+    // Only one GUI per user: a second launch just asks the running one to show its window,
+    // so it never touches the service, IPC or the phone/swap ports.
+    const QString instanceKey = QStringLiteral("InputLeafPlus-") +
+        qEnvironmentVariable("USERNAME", qEnvironmentVariable("USER"));
+    QLockFile instanceLock(QDir(QDir::tempPath()).filePath(instanceKey + QStringLiteral(".lock")));
+    if (!instanceLock.tryLock(0)) {
+#ifdef Q_OS_WIN
+        AllowSetForegroundWindow(ASFW_ANY); // only this fresh process may take the foreground; hand it over
+#endif
+        QLocalSocket probe;
+        probe.connectToServer(instanceKey);
+        probe.waitForConnected(1000); // the connection itself is the "show" signal
+        return 0;
+    }
+    QLocalServer::removeServer(instanceKey); // stale socket file after a crash (no-op on Windows)
+    QLocalServer instanceServer;
+    instanceServer.setSocketOptions(QLocalServer::UserAccessOption);
+    instanceServer.listen(instanceKey);
 
 #if defined(Q_OS_MAC)
 	if (app.applicationDirPath().startsWith("/Volumes/")) {
@@ -151,6 +177,18 @@ int main(int argc, char* argv[])
 		mainWindow.open();
 	}
     QObject::connect(&mainWindow, &MainWindow::requestLanguageChange, &app, &QInputLeapApplication::switchTranslator);
+    QObject::connect(&instanceServer, &QLocalServer::newConnection, &mainWindow, [&] {
+        while (QLocalSocket* s = instanceServer.nextPendingConnection()) {
+            s->deleteLater();
+        }
+        QWidget* w = setupWizard.isVisible() ? static_cast<QWidget*>(&setupWizard) : &mainWindow;
+        w->showNormal();
+        w->raise();
+        w->activateWindow();
+#ifdef Q_OS_WIN
+        SetForegroundWindow(reinterpret_cast<HWND>(w->winId()));
+#endif
+    });
 	return app.exec();
 }
 
