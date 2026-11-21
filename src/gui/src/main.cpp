@@ -111,8 +111,16 @@ int main(int argc, char* argv[])
 #endif
         QLocalSocket probe;
         probe.connectToServer(instanceKey);
-        probe.waitForConnected(1000); // the connection itself is the "show" signal
-        return 0;
+        if (probe.waitForConnected(1000) && probe.waitForReadyRead(3000)) {
+            return 0; // the running one answered and shows its window
+        }
+        // No answer: it is busy quitting (stopping the service) or hung. Take over once it is gone.
+        if (!instanceLock.tryLock(15000)) {
+            QMessageBox::warning(nullptr, "InputLeafPlus",
+                                 "이미 실행 중인 InputLeafPlus가 응답하지 않습니다.\n"
+                                 "작업 관리자에서 종료한 뒤 다시 실행해 주세요.");
+            return 1;
+        }
     }
     QLocalServer::removeServer(instanceKey); // stale socket file after a crash (no-op on Windows)
     QLocalServer instanceServer;
@@ -179,7 +187,9 @@ int main(int argc, char* argv[])
     QObject::connect(&mainWindow, &MainWindow::requestLanguageChange, &app, &QInputLeapApplication::switchTranslator);
     QObject::connect(&instanceServer, &QLocalServer::newConnection, &mainWindow, [&] {
         while (QLocalSocket* s = instanceServer.nextPendingConnection()) {
-            s->deleteLater();
+            QObject::connect(s, &QLocalSocket::disconnected, s, &QObject::deleteLater);
+            s->write("1"); // tells the new launch we are alive
+            s->disconnectFromServer();
         }
         QWidget* w = setupWizard.isVisible() ? static_cast<QWidget*>(&setupWizard) : &mainWindow;
         w->showNormal();

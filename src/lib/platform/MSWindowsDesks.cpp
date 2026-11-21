@@ -675,11 +675,10 @@ void MSWindowsDesks::desk_thread(Desk* desk)
             break;
 
         case INPUTLEAP_MSG_FAKE_WHEEL:
-            // both axes can arrive in one message (a diagonal trackpad scroll)
             if (msg.lParam != 0) {
                 mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (DWORD)msg.lParam, 0);
             }
-            if (IsWindowsVistaOrGreater() && msg.wParam != 0) {
+            else if (IsWindowsVistaOrGreater() && msg.wParam != 0) {
                 mouse_event(MOUSEEVENTF_HWHEEL, 0, 0, (DWORD)msg.wParam, 0);
             }
             break;

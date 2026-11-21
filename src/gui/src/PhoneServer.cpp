@@ -210,7 +210,11 @@ void PhoneServer::onDisconnected(QTcpSocket* s)
     s->deleteLater();
     if (wasAuthed) {
         --authedCount_;
-        releaseInput();     // also covers the idle timeout, which aborts the socket
+        // Only the last phone lets go: a dead socket timing out after a reconnect must not drop
+        // what the new connection holds (the page itself sends 'rel' when it is hidden).
+        if (authedCount_ == 0) {
+            releaseInput();     // also covers the idle timeout, which aborts the socket
+        }
         Q_EMIT clientCountChanged(authedCount_);
     }
 }

@@ -347,7 +347,7 @@ pad.addEventListener('touchstart',function(e){
   }
   if(g.mode==='two'){
     var c=cen(ts);g.x=c.x;g.y=c.y;g.d=null;
-    if(n>g.n){scrollEnd();zoomEnd();g.n=n;g.sx=g.sy=0;g.sp0=null;g.fired=false;g.kind='';g.bx=g.by=0}
+    if(n>g.n){scrollEnd();zoomEnd();g.n=n;g.dist=0;g.sx=g.sy=0;g.sp0=null;g.fired=false;g.kind='';g.bx=g.by=0}
   }else g=two(ts,t,stopped);
 },{passive:false});
 pad.addEventListener('touchmove',function(e){
@@ -359,6 +359,7 @@ pad.addEventListener('touchmove',function(e){
     if(!tch)return;
     dx=tch.clientX-g.x;dy=tch.clientY-g.y;g.x=tch.clientX;g.y=tch.clientY;
     if(t<g.settle){pt=t;return}   // fingers just lifted or landed: their wobble is not a move
+    moStop();                     // a finger left down that moves again grabs the content
     g.dist+=Math.abs(dx)+Math.abs(dy);
     var k=accel(dx,dy,t);g.hx+=dx*k;g.hy+=dy*k;
     // a tap's jitter is not sent: the cursor starts once the finger clearly moves or stays down
@@ -426,7 +427,7 @@ function tEnd(e){
     follow(ts,t);
   }else if(g.mode==='two'){
     if(ts.length>=2){
-      if(ts.length===2&&g.n>=3){d3Lift();g=two(ts,t,true);g.settle=t+120}   // down to 2 fingers: a new gesture
+      if(ts.length===2&&g.n>=3&&g.drag3){d3Lift();g=two(ts,t,true);g.settle=t+120}   // a 3-finger drag down to 2: a new gesture
       else{var c=cen(ts);g.x=c.x;g.y=c.y;g.d=null}
       return;
     }
@@ -438,7 +439,7 @@ function tEnd(e){
     if(flick)gesture(g.sx>0?'back':'fwd');
     else if(g.kind==='scroll')scroll(g.bx,g.by);
     scrollEnd();
-    if(!flick&&g.kind==='scroll'&&t-g.lt<80&&!ts.length)moStart(g.vx,g.vy);   // a finger left down holds the content
+    if(!flick&&g.kind==='scroll'&&t-g.lt<80)moStart(g.vx,g.vy);   // fingers lift a few ms apart; the last one moving again stops it
     if(quick){
       if(g.n===2){d3Done();click(1);buzz(10)}
       else if(g.n===3)gesture('lookup');
@@ -458,13 +459,15 @@ Array.prototype.forEach.call(mbs,function(el){
   el.style.touchAction='none';
   el.addEventListener('pointerdown',function(e){
     e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(x){}
-    if(held[b])return;held[b]=true;el.classList.add('on');btn(b,1);buzz(10);
+    if(held[b])return;held[b]=true;el.classList.add('on');
+    if(b===0){clearTimeout(tapUpT);clearTimeout(d3T);tapUpT=d3T=0}   // a pending tap/3-finger release must not undo this press
+    btn(b,1);buzz(10);
   });
   function up(){if(!held[b])return;held[b]=false;el.classList.remove('on');btn(b,0)}
   el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
   el.addEventListener('contextmenu',function(e){e.preventDefault()});
 });
-$('lock').addEventListener('click',function(){if(!authed)return;dragLock=!dragLock;btn(0,dragLock?1:0);refreshMods();buzz(10)});
+$('lock').addEventListener('click',function(){if(!authed)return;clearTimeout(tapUpT);clearTimeout(d3T);tapUpT=d3T=0;dragLock=!dragLock;btn(0,dragLock?1:0);refreshMods();buzz(10)});
 
 /* ---- keyboard panel ---- */
 var kb=$('kb'),txt=$('txt'),direct=false;
