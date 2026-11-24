@@ -34,12 +34,14 @@ QByteArray msg(const char* code, std::initializer_list<int> shorts = {})
     return frame(m);
 }
 
-QString mouse(std::initializer_list<int> bytes)
+// a mouse report and the pause `hid` keeps after it
+QStringList mouse(std::initializer_list<int> bytes)
 {
     QStringList parts;
     for (int b : bytes)
         parts << QString::number(b);
-    return QStringLiteral("{\"id\":1,\"command\":\"report\",\"report\":[%1]}").arg(parts.join(','));
+    return {QStringLiteral("{\"id\":1,\"command\":\"report\",\"report\":[%1]}").arg(parts.join(',')),
+            QStringLiteral("{\"id\":1,\"command\":\"delay\",\"duration\":2}")};
 }
 
 QString keyboard(std::initializer_list<int> bytes)
@@ -128,18 +130,29 @@ TEST(TabBridgeCore, absolute_moves_become_counts_from_the_corner)
 {
     tab::Session s = connected(0.8);
     s.feed(msg("CINN", {10, 20, 0, 0, 0}));   // x, y, seq (4 bytes), mask
-    EXPECT_EQ(s.takeHidLines(), QStringList({mouse({0, 1, 128, 1, 128, 0, 0}), mouse({0, 1, 128, 1, 128, 0, 0}),
-                                             mouse({0, 8, 0, 16, 0, 0, 0})}));
+    EXPECT_EQ(s.takeHidLines(), mouse({0, 1, 128, 1, 128, 0, 0}) + mouse({0, 1, 128, 1, 128, 0, 0}) +
+                                    mouse({0, 8, 0, 16, 0, 0, 0}));
     // two moves in one read are coalesced into one report: 11 -> 8.8 -> 9, 12 -> 9.6 -> 10
     s.feed(msg("DMMV", {11, 20}) + msg("DMMV", {12, 20}));
-    EXPECT_EQ(s.takeHidLines(), QStringList({mouse({0, 2, 0, 0, 0, 0, 0})}));
+    EXPECT_EQ(s.takeHidLines(), mouse({0, 2, 0, 0, 0, 0, 0}));
     // a click flushes the motion first, and the position is clamped to the declared screen
     s.feed(msg("DMMV", {5000, 20}));
     s.feed(frame(QByteArray("DMDN") + QByteArray(1, '\x03')));
-    const QStringList lines = s.takeHidLines();
-    ASSERT_EQ(lines.size(), 2);
-    EXPECT_EQ(lines[0], mouse({0, (1183 - 10) & 0xFF, (1183 - 10) >> 8, 0, 0, 0, 0}));   // lround(1479 * 0.8) = 1183
-    EXPECT_EQ(lines[1], mouse({2, 0, 0, 0, 0, 0, 0}));                                  // right button
+    EXPECT_EQ(s.takeHidLines(), mouse({0, (1183 - 10) & 0xFF, (1183 - 10) >> 8, 0, 0, 0, 0}) +   // lround(1479 * 0.8)
+                                    mouse({2, 0, 0, 0, 0, 0, 0}));                                // right button
+}
+
+TEST(TabBridgeCore, motion_waits_for_the_next_tick)
+{
+    tab::Session s = connected(1.0);
+    s.feed(msg("CINN", {0, 0, 0, 0, 0}));
+    s.takeHidLines();
+    s.feed(msg("DMMV", {3, 0}));
+    EXPECT_TRUE(s.takeHidLines(false).isEmpty());
+    s.feed(msg("DMMV", {5, 1}));
+    EXPECT_EQ(s.takeHidLines(), mouse({0, 5, 0, 1, 0, 0, 0}));   // both moves in one report
+    s.feed(msg("DMMV", {6, 1}) + msg("DKDN", {'a', 0, 0x00 + 1}));   // a key goes now, after the motion
+    EXPECT_EQ(s.takeHidLines(false), mouse({0, 1, 0, 0, 0, 0, 0}) + QStringList({keyboard({1, 0, 0, 0x04, 0, 0, 0, 0, 0})}));
 }
 
 TEST(TabBridgeCore, wheel_keeps_remainder)
@@ -148,7 +161,7 @@ TEST(TabBridgeCore, wheel_keeps_remainder)
     s.feed(msg("DMWM", {0, 60}));
     EXPECT_TRUE(s.takeHidLines().isEmpty());
     s.feed(msg("DMWM", {0, 60}));
-    EXPECT_EQ(s.takeHidLines(), QStringList({mouse({0, 0, 0, 0, 0, 1, 0})}));
+    EXPECT_EQ(s.takeHidLines(), mouse({0, 0, 0, 0, 0, 1, 0}));
 }
 
 TEST(TabBridgeCore, parses_dumpsys_metrics)
@@ -213,5 +226,5 @@ TEST(TabBridgeCore, game_mode_relative_moves_are_not_clamped)
     s.feed(msg("CINN", {1479, 0, 0, 0, 0}));   // at the right edge
     s.takeHidLines();
     s.feed(msg("DMRM", {3, 0}) + msg("DMRM", {3, 0}));   // 1.5 + 1.5 counts, past the edge
-    EXPECT_EQ(s.takeHidLines(), QStringList({mouse({0, 3, 0, 0, 0, 0, 0})}));
+    EXPECT_EQ(s.takeHidLines(), mouse({0, 3, 0, 0, 0, 0, 0}));
 }

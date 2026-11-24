@@ -48,9 +48,22 @@ QString findAdb()
 TabBridge::TabBridge(QObject* parent) :
     QObject(parent),
     m_socket(new QTcpSocket(this)),
-    m_retry(new QTimer(this))
+    m_retry(new QTimer(this)),
+    m_motion(new QTimer(this))
 {
     m_retry->setSingleShot(true);
+    // the server sends motion hundreds of times a second; 125 reports a second keep wireless bursts small
+    m_motion->setSingleShot(true);
+    m_motion->setInterval(8);
+    connect(m_motion, &QTimer::timeout, this, [this]() {
+        if (!m_session)
+            return;
+        const QStringList lines = m_session->takeHidLines();
+        if (!lines.isEmpty()) {
+            writeHid(lines);
+            m_motion->start();
+        }
+    });
     connect(m_socket, &QTcpSocket::connected, this, [this]() {
         m_socket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
         // one Mac point = one tablet dp at 100%; the server measures the screen in Mac points
@@ -288,7 +301,12 @@ void TabBridge::onServerData()
     const QByteArray reply = m_session->feed(m_socket->readAll());
     if (!reply.isEmpty())
         m_socket->write(reply);
-    writeHid(m_session->takeHidLines());
+    // motion right away after a pause, then once per tick; clicks and keys always go now
+    // (a click sends the motion before it first)
+    const bool tick = !m_motion->isActive();
+    writeHid(m_session->takeHidLines(tick));
+    if (tick)
+        m_motion->start();
     if (m_session->failed()) {
         m_socket->abort();   // onServerGone() reports the error and schedules the retry
         return;

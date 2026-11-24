@@ -457,9 +457,10 @@ void Session::releaseAll()
     m_wheelX = m_wheelY = 0;
 }
 
-QStringList Session::takeHidLines()
+QStringList Session::takeHidLines(bool withMotion)
 {
-    flushMotion();
+    if (withMotion)
+        flushMotion();
     QStringList lines;
     lines.swap(m_out);
     return lines;
@@ -487,6 +488,11 @@ void Session::sendMouse(int dx, int dy, int wheel, int pan)
     r.append(static_cast<char>(wheel));
     r.append(static_cast<char>(pan));
     m_out << hidLine(kMouseId, QStringLiteral("report"), QStringLiteral("\"report\":[%1]").arg(numbers(r)));
+    // Wireless adb delivers lines in bursts; written to the tablet at once, 150+ reports overflow the
+    // kernel's input buffer and Android drops that motion (the cursor then stops short of the edge).
+    // `hid` holds the next report of this device until this long after the previous one.
+    // shortcut: keyboard reports are not held, so in a burst a key can overtake a click.
+    m_out << hidLine(kMouseId, QStringLiteral("delay"), QStringLiteral("\"duration\":%1").arg(kMouseGapMs));
 }
 
 void Session::sendKeyboard()

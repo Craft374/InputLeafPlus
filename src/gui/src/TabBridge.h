@@ -72,6 +72,7 @@ private:
     QByteArray m_hidOutput;
     QTcpSocket* m_socket = nullptr;
     QTimer* m_retry = nullptr;
+    QTimer* m_motion = nullptr;     // paces mouse motion: at most one report per tick
     std::unique_ptr<tab::Session> m_session;
     tab::Metrics m_metrics;
     int m_density = 0;

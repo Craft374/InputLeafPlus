@@ -25,6 +25,8 @@ namespace tab {
 // `hid -` device ids
 constexpr int kMouseId = 1;
 constexpr int kKeyboardId = 2;
+// least time between two mouse reports reaching the tablet's input buffer
+constexpr int kMouseGapMs = 2;
 
 // Lines that register the virtual mouse and keyboard; send them first.
 QStringList registerLines();
@@ -56,8 +58,9 @@ public:
 
     // Bytes from the server in, bytes to send back out. Call takeHidLines() afterwards.
     QByteArray feed(const QByteArray& data);
-    // Pending HID report lines (queued mouse motion is coalesced into one report here).
-    QStringList takeHidLines();
+    // Pending HID report lines. withMotion: also turn the queued mouse motion into one report;
+    // without it the motion keeps adding up for a later call.
+    QStringList takeHidLines(bool withMotion = true);
     // Lifts every key and button the tablet thinks are down.
     void releaseAll();
 
