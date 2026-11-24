@@ -19,6 +19,7 @@
 #include <atomic>
 #include <iostream>
 #include <thread>
+#include <tuple>
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
@@ -28,6 +29,7 @@
 #include "SettingsDialog.h"
 #include "ZeroconfService.h"
 #include "PhoneServer.h"
+#include "TabBridge.h"
 #include "QUtility.h"
 #include "common/DataDirectories.h"
 
@@ -395,6 +397,18 @@ MainWindow::MainWindow(QSettings& settings, AppConfig& appConfig) :
             {QStringLiteral("name"), getScreenName()},
             {QStringLiteral("role"), app_role() == AppRole::Server ? QStringLiteral("server") : QStringLiteral("client")}};
     });
+    m_pTabBridge = new TabBridge(this);
+    connect(m_pTabBridge, &TabBridge::status, this, [this](const QString& message, bool ok) {
+        if (ok) {
+            appendLogInfo(message);
+        } else {
+            appendLogError(message);
+        }
+        if (m_pTrayIcon) {
+            m_pTrayIcon->showMessage(tr("갤럭시 탭"), message,
+                                     ok ? QSystemTrayIcon::Information : QSystemTrayIcon::Warning);
+        }
+    });
     m_pPeerLink = new PeerLink(this);
     m_pPeerLink->setHandler([this](const peerlink::SwapRequest& request) { return handleSwapRequest(request); });
 #if !defined(Q_OS_MAC) && !defined(Q_OS_WIN)
@@ -441,6 +455,7 @@ MainWindow::MainWindow(QSettings& settings, AppConfig& appConfig) :
 MainWindow::~MainWindow()
 {
     m_pPhoneServer->stop();
+    m_pTabBridge->stop();
     m_pPeerLink->close();
 
     if (appConfig().processMode() == Desktop) {
@@ -604,6 +619,7 @@ void MainWindow::quitApplication()
     }
     m_ShuttingDown = true;
     m_pPhoneServer->stop();
+    m_pTabBridge->stop();
     m_pPeerLink->close();
 
 #if defined(Q_OS_WIN)
@@ -1084,6 +1100,14 @@ bool MainWindow::serverArgs(QStringList& args, QString& app)
     }
 #endif
 
+#if defined(Q_OS_MAC)
+    if (appConfig().tabEnabled() && ui_->m_pRadioInternalConfig->isChecked() &&
+        serverConfig().ensureScreen(TabBridge::screenName())) {
+        appendLogInfo(tr("화면 배치에 갤럭시 탭(%1) 화면을 추가했습니다. 위치는 화면 배치 설정에서 옮길 수 있습니다.")
+                          .arg(TabBridge::screenName()));
+    }
+#endif
+
     QString configFilename = this->configFilename();
 #if defined(Q_OS_WIN)
     // wrap in quotes in case username contains spaces.
@@ -1099,6 +1123,9 @@ void MainWindow::stop_cmd_app()
     appendLogDebug("stopping process");
 
     m_ExpectedRunningState = kStopped;
+    // the server never says goodbye to its clients, so leave first or it waits for the tablet
+    // until it is killed
+    m_pTabBridge->stop();
 
     if (appConfig().processMode() == Service)
     {
@@ -1217,6 +1244,7 @@ void MainWindow::set_connection_state(AppConnectionState state)
     set_icon(state);
 
     connection_state_ = state;
+    updateTabBridge();
 }
 
 void MainWindow::setVisible(bool visible)
@@ -1405,15 +1433,26 @@ void MainWindow::on_m_pActionSettings_triggered()
     const bool oldMapMacFunctionKeys = appConfig().getMacMapFunctionKeys();
     const QString oldMacLocalInputDevice = appConfig().macLocalInputDevice();
 #endif
+    const auto tabSettings = [this]() {
+        return std::make_tuple(appConfig().tabEnabled(), appConfig().tabAddress(), appConfig().tabSpeed());
+    };
+    const auto oldTabSettings = tabSettings();
     auto dialog = std::make_unique<SettingsDialog>(this, appConfig());
     connect(dialog.get(), &SettingsDialog::requestLanguageChange, this, &MainWindow::requestLanguageChange);
     if (dialog.get()->exec() == QDialog::Accepted) {
         updatePhoneServer();
         updatePeerLink();
+        if (tabSettings() != oldTabSettings) {
+            m_pTabBridge->stop();   // picks up a new address or speed
+        }
+        updateTabBridge();
 #if defined(Q_OS_MAC)
         const bool macInputChanged = oldMapMacFunctionKeys != appConfig().getMacMapFunctionKeys() ||
             oldMacLocalInputDevice != appConfig().macLocalInputDevice();
-        if (macInputChanged && app_role() == AppRole::Server &&
+        // a running server only learns about a newly added tablet screen from a fresh config
+        const bool tabScreenMissing = appConfig().tabEnabled() && ui_->m_pRadioInternalConfig->isChecked() &&
+                                      !serverConfig().hasScreen(TabBridge::screenName());
+        if ((macInputChanged || tabScreenMissing) && app_role() == AppRole::Server &&
             m_ExpectedRunningState == kStarted) {
             restart_cmd_app();
         }
@@ -1439,6 +1478,23 @@ void MainWindow::updatePhoneServer()
     }
     appConfig().saveSettings();   // keeps a freshly generated PIN
     appendLogInfo(tr("휴대폰 트랙패드 주소: %1").arg(PhoneServer::localUrls(port).join(QStringLiteral(", "))));
+}
+
+void MainWindow::updateTabBridge()
+{
+#if defined(Q_OS_MAC)
+    // the bridge joins the local server, so it lives exactly as long as this Mac is a running server
+    const bool wanted = appConfig().tabEnabled() && app_role() == AppRole::Server &&
+                        connection_state_ != AppConnectionState::DISCONNECTED && !m_ShuttingDown;
+    if (!wanted) {
+        m_pTabBridge->stop();
+    } else if (!m_pTabBridge->isRunning()) {
+        const QString host = appConfig().networkInterface().isEmpty() ? QStringLiteral("127.0.0.1")
+                                                                      : appConfig().networkInterface();
+        m_pTabBridge->start(appConfig().tabAddress(), host, static_cast<quint16>(appConfig().port()),
+                            appConfig().tabSpeed());
+    }
+#endif
 }
 
 void MainWindow::updatePhoneScreen(const QString& activeScreen)

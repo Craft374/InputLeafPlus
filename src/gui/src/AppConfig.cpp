@@ -165,6 +165,9 @@ void AppConfig::loadSettings()
     m_PhoneEnabled = settings().value("phoneEnabled", false).toBool();
     m_PhonePort = settings().value("phonePort", 24803).toInt();
     m_PhonePin = settings().value("phonePin").toString();
+    m_TabEnabled = settings().value("tabEnabled", false).toBool();
+    m_TabAddress = settings().value("tabAddress").toString();
+    m_TabSpeed = settings().value("tabSpeed", 100).toInt();
     m_PeerLinkEnabled = settings().value("peerLinkEnabled", false).toBool();
     m_PeerLinkPort = settings().value("peerLinkPort", 24802).toInt();
     m_PeerPairingCode = settings().value("peerPairingCode").toString();
@@ -198,6 +201,9 @@ void AppConfig::saveSettings()
     settings().setValue("phoneEnabled", m_PhoneEnabled);
     settings().setValue("phonePort", m_PhonePort);
     settings().setValue("phonePin", m_PhonePin);
+    settings().setValue("tabEnabled", m_TabEnabled);
+    settings().setValue("tabAddress", m_TabAddress);
+    settings().setValue("tabSpeed", m_TabSpeed);
     settings().setValue("peerLinkEnabled", m_PeerLinkEnabled);
     settings().setValue("peerLinkPort", m_PeerLinkPort);
     settings().setValue("peerPairingCode", m_PeerPairingCode);

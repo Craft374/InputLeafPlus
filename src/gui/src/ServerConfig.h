@@ -72,6 +72,9 @@ class ServerConfig : public BaseConfig
         void save(QFile& file) const;
         int numScreens() const;
         int autoAddScreen(const QString name);
+        // Puts `name` next to the server (left, below, above, right: first free cell) when it isn't
+        // in the layout yet, taking its modifier keys from another client screen. True if added.
+        bool ensureScreen(const QString& name);
 
         // Layout transfer between machines. fromVariantMap() validates everything first and
         // leaves the current config untouched (returns false, Korean message) on bad input.

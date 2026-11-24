@@ -58,6 +58,7 @@ class QInputLeapApplication;
 class SetupWizard;
 class ZeroconfService;
 class PhoneServer;
+class TabBridge;
 
 namespace Ui
 {
@@ -163,6 +164,7 @@ public slots:
         void proofreadInfo();
         void windowStateChanged();
         void updatePhoneServer();
+        void updateTabBridge();
         void updatePhoneScreen(const QString& activeScreen);   // screen name from the server log
         void updatePeerLink();
         void beginSwap();
@@ -198,6 +200,7 @@ public slots:
         LogWindow *m_pLogWindow;
         bool m_ShuttingDown = false;
         PhoneServer* m_pPhoneServer = nullptr;   // owned through QObject parent
+        TabBridge* m_pTabBridge = nullptr;       // owned through QObject parent
         PeerLink* m_pPeerLink = nullptr;         // owned through QObject parent
         bool m_SwapInProgress = false;
         QString m_PeerIpHint;   // the other PC's address as announced over Bonjour (fresh after wifi changes)

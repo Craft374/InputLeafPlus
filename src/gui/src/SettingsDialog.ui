@@ -254,6 +254,72 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="m_pGroupTab">
+     <property name="title">
+      <string>갤럭시 탭 (덱스)</string>
+     </property>
+     <layout class="QFormLayout" name="tabLayout">
+      <item row="0" column="0" colspan="2">
+       <widget class="QCheckBox" name="m_pCheckBoxTabEnabled">
+        <property name="text">
+         <string>맥 키보드·마우스로 탭 조작</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="m_pLabelTabAddress">
+        <property name="text">
+         <string>탭 주소 (IP:포트):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="m_pLineEditTabAddress">
+        <property name="placeholderText">
+         <string>192.168.0.9:44503</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="m_pLabelTabSpeed">
+        <property name="text">
+         <string>탭 마우스 속도:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QSpinBox" name="m_pSpinBoxTabSpeed">
+        <property name="suffix">
+         <string>%</string>
+        </property>
+        <property name="minimum">
+         <number>25</number>
+        </property>
+        <property name="maximum">
+         <number>400</number>
+        </property>
+        <property name="singleStep">
+         <number>10</number>
+        </property>
+        <property name="value">
+         <number>100</number>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QLabel" name="m_pLabelTabHint">
+        <property name="text">
+         <string>탭의 개발자 옵션 → 무선 디버깅을 켜고, 그 화면의 'IP 주소 및 포트'를 입력하세요 (맥과 한 번 페어링돼 있어야 합니다). 탭을 재부팅하거나 무선 디버깅을 다시 켜면 포트가 바뀝니다. 화면 배치에 GalaxyTab 화면이 자동으로 추가되며 위치는 옮길 수 있습니다. 연결된 동안 탭의 '포인터 정밀도 향상'은 꺼지고, 클립보드는 공유되지 않습니다. Caps Lock과 오른쪽 ⌘는 탭에서 한/영 전환입니다.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="m_pGroupPeer">
      <property name="title">
       <string>PC 간 역할 교환</string>

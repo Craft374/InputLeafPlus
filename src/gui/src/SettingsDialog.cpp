@@ -88,8 +88,12 @@ SettingsDialog::SettingsDialog(QWidget* parent, AppConfig& config) :
         item->setCheckState(Qt::Checked);
     }
     ui_->m_pCheckBoxMacMapFunctionKeys->setChecked(app_config_.getMacMapFunctionKeys());
+    ui_->m_pCheckBoxTabEnabled->setChecked(app_config_.tabEnabled());
+    ui_->m_pLineEditTabAddress->setText(app_config_.tabAddress());
+    ui_->m_pSpinBoxTabSpeed->setValue(app_config_.tabSpeed());
 #else
     ui_->m_pGroupMacInput->hide();
+    ui_->m_pGroupTab->hide();   // the tablet bridge maps Mac key codes, so it only runs on a Mac server
 #endif
 
 #if defined(Q_OS_WIN)
@@ -153,6 +157,13 @@ void SettingsDialog::accept()
             tr("페어링 코드는 8자 이상이어야 합니다. '새 코드 만들기'를 눌러 주세요."));
         return;
     }
+    const QString tabAddress = ui_->m_pLineEditTabAddress->text().trimmed();
+    if (ui_->m_pCheckBoxTabEnabled->isChecked() &&
+        !QRegularExpression(QStringLiteral("^[A-Za-z0-9.\\-]+:\\d{1,5}$")).match(tabAddress).hasMatch()) {
+        QMessageBox::warning(this, tr("설정"),
+            tr("갤럭시 탭 주소는 무선 디버깅 화면의 'IP 주소 및 포트'처럼 192.168.0.9:44503 형식으로 입력해 주세요."));
+        return;
+    }
 
     app_config_.setScreenName(ui_->m_pLineEditScreenName->text());
     app_config_.setPort(ui_->m_pSpinBoxPort->value());
@@ -173,6 +184,9 @@ void SettingsDialog::accept()
     if (peerCodeOk) app_config_.setPeerPairingCode(peerCode);
     app_config_.setPeerAddress(ui_->m_pLineEditPeerAddress->text().trimmed());
 #if defined(Q_OS_MAC)
+    app_config_.setTabEnabled(ui_->m_pCheckBoxTabEnabled->isChecked());
+    app_config_.setTabAddress(tabAddress);
+    app_config_.setTabSpeed(ui_->m_pSpinBoxTabSpeed->value());
     QStringList selectedDeviceIds;
     for (int i = 0; i < ui_->m_pListLocalInputDevices->count(); ++i) {
         const auto* item = ui_->m_pListLocalInputDevices->item(i);

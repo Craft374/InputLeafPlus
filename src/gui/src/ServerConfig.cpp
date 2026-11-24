@@ -385,6 +385,43 @@ int ServerConfig::autoAddScreen(const QString name)
     return kAutoAddScreenOk;
 }
 
+bool ServerConfig::ensureScreen(const QString& name)
+{
+    int serverIndex = -1;
+    if (hasScreen(name) ||
+        (!findScreenName(m_ServerName, serverIndex) && !fixNoServer(m_ServerName, serverIndex))) {
+        return false;
+    }
+    int target = -1;
+    for (int dir : {1, 3, 2, 0}) {   // neighbourDirs: left, down, up, right
+        const int idx = adjacentScreenIndex(serverIndex, neighbourDirs[dir].x, neighbourDirs[dir].y);
+        if (idx != -1 && screens()[idx].isNull()) {
+            target = idx;
+            break;
+        }
+    }
+    if (target == -1) {
+        for (std::size_t i = 0; i < screens().size() && target == -1; i++) {
+            if (screens()[i].isNull())
+                target = static_cast<int>(i);
+        }
+    }
+    if (target == -1) {
+        return false;
+    }
+    m_Screens[target].setName(name);
+    // the user already chose Mac-to-PC modifier keys (e.g. Command acting as Alt) for the other
+    // screen; a tablet in DeX wants the same
+    for (const Screen& other : screens()) {
+        if (!other.isNull() && other.name() != m_ServerName && other.name() != name) {
+            m_Screens[target].modifiers() = other.modifiers();
+            break;
+        }
+    }
+    saveSettings();
+    return true;
+}
+
 bool ServerConfig::findScreenName(const QString& name, int& index)
 {
     bool found = false;

@@ -38,6 +38,7 @@ class Screen : public BaseConfig
     friend class ScreenSettingsDialog;
     friend class ScreenSetupModel;
     friend class ScreenSetupView;
+    friend class ServerConfig;
 
     public:
         Screen();

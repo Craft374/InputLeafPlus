@@ -22,6 +22,7 @@ set(GUI_COMMON_SOURCE_FILES
     src/PeerLink.cpp
     src/PhoneKeys.cpp
     src/PhoneProtocol.cpp
+    src/TabBridgeCore.cpp
 )
 
 set(GUI_COMMON_HEADER_FILES
@@ -31,6 +32,7 @@ set(GUI_COMMON_HEADER_FILES
     src/PeerLink.h
     src/PhoneKeys.h
     src/PhoneProtocol.h
+    src/TabBridgeCore.h
 )
 
 set(GUI_SOURCE_FILES
@@ -53,6 +55,7 @@ set(GUI_SOURCE_FILES
     src/NewScreenWidget.cpp
     src/PhoneInject.cpp
     src/PhoneServer.cpp
+    src/TabBridge.cpp
     src/QInputLeapApplication.cpp
     src/QUtility.cpp
     src/Screen.cpp
@@ -92,6 +95,7 @@ set(GUI_HEADER_FILES
     src/NewScreenWidget.h
     src/PhoneInject.h
     src/PhoneServer.h
+    src/TabBridge.h
     src/ProcessorArch.h
     src/QInputLeapApplication.h
     src/QUtility.h
@@ -275,6 +279,7 @@ if(INPUTLEAP_BUILD_TESTS)
         test/PeerLinkTests.cpp
         test/PhoneKeysTests.cpp
         test/PhoneProtocolTests.cpp
+        test/TabBridgeCoreTests.cpp
         test/main.cpp
     )
 

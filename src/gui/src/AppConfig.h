@@ -106,6 +106,12 @@ class AppConfig: public QObject
         void setPhonePort(int port);
         QString phonePin();    // generates 6 random digits when empty
         void setPhonePin(const QString& pin);
+        bool tabEnabled() const { return m_TabEnabled; }
+        void setTabEnabled(bool enabled) { m_TabEnabled = enabled; }
+        QString tabAddress() const { return m_TabAddress; }   // "ip:port" of wireless debugging
+        void setTabAddress(const QString& address) { m_TabAddress = address; }
+        int tabSpeed() const { return m_TabSpeed; }           // percent
+        void setTabSpeed(int percent) { m_TabSpeed = percent; }
 
         bool peerLinkEnabled() const;
         void setPeerLinkEnabled(bool enabled);
@@ -155,6 +161,9 @@ protected:
         bool m_PhoneEnabled = false;
         int m_PhonePort = 24803;
         QString m_PhonePin;
+        bool m_TabEnabled = false;
+        QString m_TabAddress;
+        int m_TabSpeed = 100;
         bool m_PeerLinkEnabled = false;
         int m_PeerLinkPort = 24802;
         QString m_PeerPairingCode;
