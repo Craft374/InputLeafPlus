@@ -49,6 +49,7 @@ private:
     void startHid();
     void queryMetrics(int attempt);
     void connectServer();
+    void checkScreen();
     void onHidOutput();
     void onHidGone();
     void onServerData();
@@ -73,6 +74,9 @@ private:
     QTcpSocket* m_socket = nullptr;
     QTimer* m_retry = nullptr;
     QTimer* m_motion = nullptr;     // paces mouse motion: at most one report per tick
+    QTimer* m_screenPoll = nullptr;
+    QPointer<QProcess> m_screenQuery;
+    bool m_screenOn = true;         // off: stay off the server so the cursor can't cross onto a dark tablet
     std::unique_ptr<tab::Session> m_session;
     tab::Metrics m_metrics;
     int m_density = 0;

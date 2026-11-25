@@ -521,7 +521,11 @@ void MainWindow::createTrayIcon()
     m_pTrayIconMenu->addAction(ui_->m_pActionMinimize);
     m_pTrayIconMenu->addAction(ui_->m_pActionRestore);
     m_pTrayIconMenu->addSeparator();
-    m_pTrayIconMenu->addAction(ui_->m_pActionQuit);
+    // m_pActionQuit has QuitRole, so on macOS Qt moves it into the app menu and it vanishes from here
+    QAction* quit = m_pTrayIconMenu->addAction(ui_->m_pActionQuit->text());
+    quit->setMenuRole(QAction::NoRole);
+    connect(quit, &QAction::triggered, ui_->m_pActionQuit, &QAction::trigger);
+    connect(ui_->m_pActionQuit, &QAction::changed, quit, [this, quit]() { quit->setText(ui_->m_pActionQuit->text()); });
 
     m_pTrayIcon = new QSystemTrayIcon(this);
     m_pTrayIcon->setContextMenu(m_pTrayIconMenu);

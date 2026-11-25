@@ -49,8 +49,11 @@ TabBridge::TabBridge(QObject* parent) :
     QObject(parent),
     m_socket(new QTcpSocket(this)),
     m_retry(new QTimer(this)),
-    m_motion(new QTimer(this))
+    m_motion(new QTimer(this)),
+    m_screenPoll(new QTimer(this))
 {
+    m_screenPoll->setInterval(1500);
+    connect(m_screenPoll, &QTimer::timeout, this, &TabBridge::checkScreen);
     m_retry->setSingleShot(true);
     // the server sends motion hundreds of times a second; 125 reports a second keep wireless bursts small
     m_motion->setSingleShot(true);
@@ -106,6 +109,8 @@ void TabBridge::start(const QString& tabAddress, const QString& serverHost, quin
     }
     m_lastStatus.clear();
     m_running = true;
+    m_screenOn = true;
+    m_screenPoll->start();
     if (m_closing) {
         // let the previous session put the tablet's setting back before this one switches it off
         connect(m_closing, &QProcess::finished, this, [this]() {
@@ -121,6 +126,7 @@ void TabBridge::stop()
 {
     m_running = false;
     m_retry->stop();
+    m_screenPoll->stop();
     if (m_session) {
         m_session->releaseAll();
         writeHid(m_session->takeHidLines());
@@ -288,9 +294,41 @@ void TabBridge::queryMetrics(int attempt)
 
 void TabBridge::connectServer()
 {
-    if (!m_running || !m_hid || m_socket->state() != QAbstractSocket::UnconnectedState)
+    if (!m_running || !m_hid || !m_screenOn || m_socket->state() != QAbstractSocket::UnconnectedState)
         return;
     m_socket->connectToHost(m_serverHost, m_serverPort);
+}
+
+void TabBridge::checkScreen()
+{
+    if (!m_hid || m_screenQuery)
+        return;
+    QProcess* process = adb({QStringLiteral("-s"), m_address, QStringLiteral("shell"),
+                             QStringLiteral("dumpsys power | grep -m1 mWakefulness=")});
+    m_screenQuery = process;
+    connect(process, &QProcess::finished, this, [this, process]() {
+        const QString output = QString::fromUtf8(process->readAll());
+        process->deleteLater();
+        if (!m_running || !output.contains(QLatin1String("mWakefulness=")))
+            return;   // adb hiccup: keep the last known state
+        const bool on = output.contains(QLatin1String("mWakefulness=Awake"));   // Asleep, Dozing (AOD), Dreaming
+        if (on == m_screenOn)
+            return;
+        m_screenOn = on;
+        if (on) {
+            connectServer();   // "connected" is reported once the server accepts
+            return;
+        }
+        if (m_session) {
+            m_session->releaseAll();
+            writeHid(m_session->takeHidLines());
+            m_session.reset();   // before abort(): onServerGone() must not report a deliberate drop
+        }
+        m_socket->abort();   // quietly: a tray notice every time the tablet sleeps would be noise
+    });
+    connect(process, &QProcess::errorOccurred, process, &QObject::deleteLater);   // FailedToStart has no finished()
+    QTimer::singleShot(5000, process, [process]() { process->kill(); });   // a stalled adb must not block polling
+    process->start();
 }
 
 void TabBridge::onServerData()
